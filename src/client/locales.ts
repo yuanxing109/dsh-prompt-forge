@@ -6,7 +6,7 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'button.title': '提示词增强（重写为结构化提示词）',
+  'button.title': '重写为结构化提示词',
   'button.busy': '正在增强…',
   'button.cancelBusy': '正在增强，点击可取消（输入框内容不会被改动）',
   'button.revert': '已应用增强结果，点击还原原文',
@@ -30,6 +30,8 @@ export const zh = {
   'undo.applied': '已用增强结果替换原提示词',
   'undo.undo': '撤销',
   'undo.dismiss': '关闭提示',
+  'notice.staleDraft': '草稿在增强期间有改动，已放弃本次结果（原文未改动）。',
+  'notice.emptyResult': '模型返回了空结果，请重试。',
   'error.empty': '输入框为空，请先输入要增强的提示词。',
   'error.tooLong': '内容共 {count} 个字符，超过 {max} 个字符上限（按 Unicode 字符数统计，不是 token 数）。为避免改变原意不会自动截断，请精简后再试。',
   'error.attachmentsOnly': '输入框只附加了附件或引用，请补充要增强的文本。',
@@ -113,7 +115,7 @@ export type PromptForgeKey = keyof typeof zh
 
 /** English dictionary. */
 export const en: Record<PromptForgeKey, string> = {
-  'button.title': 'Enhance prompt (rewrite into a structured prompt)',
+  'button.title': 'Rewrite into a structured prompt',
   'button.busy': 'Enhancing…',
   'button.cancelBusy': 'Enhancing — click to cancel (your draft is untouched)',
   'button.revert': 'Enhanced text applied — click to restore the original',
@@ -137,6 +139,8 @@ export const en: Record<PromptForgeKey, string> = {
   'undo.applied': 'Original prompt replaced by the enhanced version',
   'undo.undo': 'Undo',
   'undo.dismiss': 'Dismiss',
+  'notice.staleDraft': 'The draft changed while enhancing, so this result was discarded (your text is untouched).',
+  'notice.emptyResult': 'The model returned an empty result — retry.',
   'error.empty': 'The input box is empty — type a prompt to enhance first.',
   'error.tooLong': 'The draft is {count} characters, above the {max} cap (Unicode characters, not tokens). It is never auto-truncated (that would change your meaning) — please shorten it.',
   'error.attachmentsOnly': 'The composer only has attachments or references; add the text you want enhanced.',

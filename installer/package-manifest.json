@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
-  "version": "0.3.4",
-  "generatedAt": "2026-11-13T16:45:28.603Z",
+  "version": "0.1.1",
+  "generatedAt": "2026-11-13T17:05:15.324Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -9,8 +9,8 @@
     "dsh": ">=0.1.1-rc.2 <0.3.0"
   },
   "bundlePatch": "./cordis.patch.yml",
-  "fileCount": 52,
-  "totalBytes": 1441795,
+  "fileCount": 39,
+  "totalBytes": 678810,
   "files": [
     {
       "path": ".gitignore",
@@ -24,13 +24,8 @@
     },
     {
       "path": "README.md",
-      "size": 32145,
-      "sha256": "066674d6bd3210a7e552bcc8112b7e067b4671ec933d31da76a11ecd6c4659f5"
-    },
-    {
-      "path": "README.zh-CN.md",
-      "size": 28932,
-      "sha256": "32010b873aff99be983948ce1a6ef270d45da7adb13d6c5941f2ca94f6024aa4"
+      "size": 22648,
+      "sha256": "7c1d6b970301918023ac489840bfa71b0c5a6cd3a597a19e4e3a27ffd4e46d44"
     },
     {
       "path": "cordis.patch.yml",
@@ -38,69 +33,9 @@
       "sha256": "87af954d56f9430d2b12832ea74c38127b08cb7a55ae36b51118922988f65675"
     },
     {
-      "path": "docs/code-review-2026-09.md",
-      "size": 14966,
-      "sha256": "c06d48a7646fc5c9de796e43a83b3594c0d42615938e580522378b663dcd0d28"
-    },
-    {
-      "path": "docs/evidence-prompt-forge-panel.png",
-      "size": 665552,
-      "sha256": "3dceefe4ab6efc074c639bdb3d98d3506888a57ccf8f881a97f6d46fa0040fcf"
-    },
-    {
-      "path": "docs/release-0.2.3.md",
-      "size": 4575,
-      "sha256": "a198930595315331cab4961780f04b4621730655f9cef39c828a84b186bedc91"
-    },
-    {
-      "path": "docs/release-0.2.4.md",
-      "size": 1421,
-      "sha256": "c2e6dc29f787718406441b14c972df49f76b088ab5c48cdcee53a718d0ec4a9d"
-    },
-    {
-      "path": "docs/release-0.2.5.md",
-      "size": 1755,
-      "sha256": "12d11bf4a5c85ae30e5d0953afbe8688c9c977b9ce1ac7b203ce27c3ece6d16c"
-    },
-    {
-      "path": "docs/release-0.2.6.md",
-      "size": 2300,
-      "sha256": "6d9bb9dd022d5cd07e08729324ca3ccd2160a7d875252c00dbf326b874cfbd9e"
-    },
-    {
-      "path": "docs/release-0.2.7.md",
-      "size": 1782,
-      "sha256": "6f02b2f60f24e735821e3e2678593da17e54bdb8115e39a95f9c276c773f6391"
-    },
-    {
-      "path": "docs/release-0.3.0.md",
-      "size": 4348,
-      "sha256": "78fcda06baaa4dc5048c9447dadfd921f2759cc153f77f709ecaae05b51133f5"
-    },
-    {
-      "path": "docs/release-0.3.1.md",
-      "size": 5315,
-      "sha256": "4385b1fc9c8f60a7c7d9bb62eb2713fba8d4e9a211dbbea501c86222ff5109a1"
-    },
-    {
-      "path": "docs/release-0.3.2.md",
-      "size": 3328,
-      "sha256": "22463c79888e5855728e5dfa804ab96ed37e3b6f6c120afaf3743110267861c0"
-    },
-    {
-      "path": "docs/release-0.3.3.md",
-      "size": 3355,
-      "sha256": "09e3f16e1254113ca04e1381e4f51d9b428a38fee84fd724384e3e9f09be78e1"
-    },
-    {
-      "path": "docs/release-0.3.4.md",
-      "size": 2922,
-      "sha256": "b782748dad22afdaf831a02de20afb48f6230543597c65278086b79b0b0cfabe"
-    },
-    {
       "path": "lib/client.js",
-      "size": 96735,
-      "sha256": "8ec3c2016585896bd9c630172790b4e4d12231c09b2eef672759824c36c6a733"
+      "size": 96164,
+      "sha256": "12ad989008dab71aa1a0ee8fcd3418fe077979c3ba9cbb614470abfd938a5a57"
     },
     {
       "path": "lib/client.js.pre-v04.bak",
@@ -119,18 +54,13 @@
     },
     {
       "path": "package.json",
-      "size": 3015,
-      "sha256": "619ad07d1882d6da927de6004c98a466a8c547ad38d051dd74248a9dc61958f4"
+      "size": 3045,
+      "sha256": "3df50103be509e01779252a77120d8f0bdd0dea3e22dcaffca6cc65e2ace1d84"
     },
     {
       "path": "src/client/EnhanceButton.tsx",
-      "size": 18723,
-      "sha256": "7da528369b82bd39b770ce1f2a3245f77ff357dbb281df0bef94c3decb64114d"
-    },
-    {
-      "path": "src/client/ResultPanel.tsx",
-      "size": 13782,
-      "sha256": "fca6a7fc70d02e82c893239ef485f5fa6f6f1d9525003d9e014d1d60353daf62"
+      "size": 17349,
+      "sha256": "8d3ea668f016781ec295a9a1900a8c6b19005cbb64bf6d87d680ee83b0a2c967"
     },
     {
       "path": "src/client/UndoBar.tsx",
@@ -143,14 +73,19 @@
       "sha256": "773b04674b3967277f3b2ecb6f9e019c72c36f7c5f860ca8577ce84a5dc7d38a"
     },
     {
+      "path": "src/client/errors.ts",
+      "size": 2437,
+      "sha256": "f72ef2858dd6b61095dd62ba9c39e2c17decdb485d8ca34abdc3551f512e48f7"
+    },
+    {
       "path": "src/client/index.tsx",
       "size": 9835,
       "sha256": "9f5cf2f1c883c00bf5a8de1d22c31d615ed51b4ad6a77774a917fe57b99288a4"
     },
     {
       "path": "src/client/locales.ts",
-      "size": 16804,
-      "sha256": "07f40b2d31fe20ca51807ef6e34b411ca4c52a3196b0751dc7fee28c47503b7e"
+      "size": 17127,
+      "sha256": "356cbcc8d8f9312c76416c4e69006e828c8c6ab67e5198194bd736c1f683160b"
     },
     {
       "path": "src/client/session-key.ts",

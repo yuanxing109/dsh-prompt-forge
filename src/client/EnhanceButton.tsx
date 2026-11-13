@@ -28,7 +28,7 @@ import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { EnhanceError } from '../shared/protocol'
 import { checkInputText } from '../shared/validate'
 import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enhance-client'
-import { ResultPanel, localizedErrorMessage } from './ResultPanel'
+import { localizedErrorMessage } from './errors'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -106,9 +106,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const getUndo = useCallback(() => ui.peekUndo(uiKey), [uiKey])
   const undoEntry = useSyncExternalStore(ui.subscribe, getUndo)
-  // Set when the preview panel had to be opened for a result that arrived
-  // after the draft changed; cleared on apply/cancel.
-  const [confirmOpen, setConfirmOpen] = useState(false)
+
   // Failures are reported as a self-dismissing one-line notice: no modal, no
   // buttons, nothing to decide. The draft was never touched, so there is only
   // something to know.
@@ -255,23 +253,29 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   // result: remember the pre-apply draft (so undo restores exactly what the
   // composer held), write the enhanced text back, and drop the loading state.
   //
-  // Two deliberate exceptions, both falling back to the panel:
+  // Two deliberate exceptions, both reported as a one-line notice:
   // - the draft no longer equals the text the call started from → the user
   //   typed while the model was working; overwriting would destroy that, so
-  //   the panel asks first;
-  // - the result is empty → nothing to write, let the panel report it.
+  //   the result is dropped and the notice says why;
+  // - the result is empty → nothing to write, the notice reports it.
   useEffect(() => {
     if (panel === undefined || panel.sessionId !== uiKey) return
     if (panel.phase !== 'result' || panel.result === undefined) return
     const enhanced = panel.result.text
-    if (draft !== panel.original || enhanced === '') {
-      setConfirmOpen(true)
+    if (draft !== panel.original) {
+      setNotice(t('notice.staleDraft'))
+      ui.closePanel()
+      return
+    }
+    if (enhanced === '') {
+      setNotice(t('notice.emptyResult'))
+      ui.closePanel()
       return
     }
     ui.pushUndo(uiKey, { original: draft, applied: enhanced, originalReferences: occurrences })
     writeDraft(enhanced, occurrences)
     ui.closePanel()
-  }, [draft, occurrences, panel, uiKey, writeDraft])
+  }, [draft, occurrences, panel, uiKey, t, writeDraft])
 
   // Every failure — the local guards and the host errors alike — collapses
   // into the notice: the shared panel slot exists for a decision (apply or
@@ -285,7 +289,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         ? panel.error.localized
         : localizedErrorMessage(t, panel.error.code, panel.error.params),
     )
-    setConfirmOpen(false)
     ui.closePanel()
   }, [panel, uiKey, t])
 
@@ -296,16 +299,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     return () => clearTimeout(timer)
   }, [notice])
 
-  /** Apply the enhanced result from the panel: remember the CURRENT draft
-   * (pre-apply, so undo restores exactly this state even if the user typed
-   * during the request), then fill the enhanced text back. */
-  const apply = useCallback((): void => {
-    if (panel === undefined || panel.phase !== 'result' || panel.result === undefined) return
-    ui.pushUndo(uiKey, { original: draft, applied: panel.result.text, originalReferences: occurrences })
-    writeDraft(panel.result.text, occurrences)
-    setConfirmOpen(false)
-    ui.closePanel()
-  }, [draft, occurrences, panel, uiKey, writeDraft])
 
   /** Click dispatch: cancel while loading → revert while reverting is safe →
    * otherwise start a fresh enhancement. */
@@ -327,10 +320,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
 
   if (!settings.enabled) return null
 
-  const owned = panel !== undefined && panel.sessionId === uiKey ? panel : undefined
-  // Only the "the draft changed under the call" confirmation still warrants
-  // the panel; a plain success is applied in place and errors become notices.
-  const showPanel = owned !== undefined && owned.phase === 'result' && confirmOpen
   const icon = canRevert ? '↩' : '✨'
   // The busy state is a real drawn ring, not the `◌` glyph: a Unicode circle
   // is rendered by whatever font the host happens to use, and several of them
@@ -350,6 +339,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         type="button"
         className={`dsh-pf-btn${busy ? ' is-busy' : ''}${canRevert ? ' is-revert' : ''}`}
         aria-label={title}
+        title={title}
         // `aria-disabled` instead of `disabled`: a disabled button is skipped by
         // the keyboard and by screen readers, so the reason this composer is
         // inert (another session's enhancement occupies the single preview
@@ -369,21 +359,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
           </div>,
           document.body,
         )}
-      {showPanel && owned !== undefined && (
-        createPortal(
-          <ResultPanel
-            state={owned}
-            t={t}
-            onApply={apply}
-            onCancel={() => {
-              setConfirmOpen(false)
-              ui.closePanel()
-            }}
-            onRetry={owned.phase === 'error' ? start : undefined}
-          />,
-          document.body,
-        )
-      )}
     </>
   )
 }

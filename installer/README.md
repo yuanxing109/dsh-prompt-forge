@@ -1,4 +1,4 @@
-# dsh-prompt-forge 离线安装包（0.3.4 · 你的修改版）
+# dsh-prompt-forge 离线安装包（0.1.1 · 你的修改版）
 
 把 `dsh-prompt-forge` 插件连同它的修改一起装到任意一台 Windows 的 DeepSeek Harness 里：双击 `installer\install.bat` 安装，双击 `installer\uninstall.bat` 回滚，`installer\verify.bat` 逐项核对结果。全程不依赖 npm registry 上的同名包，装的就是包内这份代码。
 
@@ -25,14 +25,13 @@
 
 ```
 dsh-prompt-forge\                  # 仓库根 = 插件包根（dsh 直装用）
-├─ package.json                   # v0.3.4, type=module, dsh.bundle.patch=./cordis.patch.yml
+├─ package.json                   # v0.1.1, type=module, dsh.bundle.patch=./cordis.patch.yml
 ├─ cordis.patch.yml               # bundle 补丁（插入插件行）
 ├─ lib\
 │  ├─ index.js                    # 宿主半区（已编译）
 │  └─ client.js                   # 浏览器半区（已编译，你的改动在这里）
 ├─ src\**                         # TS/TSX 源码（含 client/*、enhance-routes.ts、enhancer.ts…）
-├─ docs\**                        # 版本说明与截图
-├─ README.md / README.zh-CN.md / LICENSE
+├─ README.md / LICENSE
 └─ installer\
    ├─ install.bat                 # 双击入口 → install.ps1
    ├─ install.ps1                 # 安装：校验 → 探测环境 → 复制 vendor → 改清单 → pnpm 接线 → 自动校验
@@ -40,7 +39,7 @@ dsh-prompt-forge\                  # 仓库根 = 插件包根（dsh 直装用）
    ├─ uninstall.ps1               # 卸载：还原清单 → 清理 node_modules → 删 vendor → 自动校验
    ├─ verify.bat / verify.ps1     # 校验器：-Mode install | uninstall
    ├─ README.md                   # 本文件
-   ├─ package-manifest.json       # 52 个文件的 SHA-256、版本、engines（安装前校验用）
+   ├─ package-manifest.json       # 39 个文件的 SHA-256、版本、engines（安装前校验用）
    └─ tools\
       ├─ patch-profile.mjs        # 只改 profile package.json：add / remove / status（含备份与还原）
       └─ build-manifest.mjs       # 重新生成 package-manifest.json
@@ -107,7 +106,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\install.ps1 -NoPnp
 4. 删除 `<profile>\vendor\dsh-prompt-forge`（空掉的 `vendor` 目录一并删除）；
 5. 自动调用 `verify.ps1 -Mode uninstall`。
 
-**卸载语义**：回到「安装之前」的状态。如果这台机器装之前就有 registry 版 `dsh-prompt-forge`，卸载会把清单还原成原来的版本写法（本机为 `0.3.4`），pnpm 会把它装回来；你的修改版仍在桌面包里，随时可再装。要连原版一起移除，请到 DSH 插件管理器里再卸一次。
+**卸载语义**：回到「安装之前」的状态。如果这台机器装之前就有 registry 版 `dsh-prompt-forge`，卸载会把清单还原成安装前的版本写法，pnpm 会把它装回来；你的修改版仍在桌面包里，随时可再装。要连原版一起移除，请到 DSH 插件管理器里再卸一次。
 
 ---
 
@@ -125,8 +124,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\verify.ps1 -Mode u
 | install | 依赖写法 | `package.json` 中为 `file:./vendor/dsh-prompt-forge` |
 | install | bundle 注册 | `dsh.profile.bundles` 中恰好 1 条 `dsh-prompt-forge` |
 | install | 必要文件 | vendor 下 `package.json`、`cordis.patch.yml`、`lib\index.js`、`lib\client.js` 齐全 |
-| install | 版本 | vendor 版本 = 包版本（0.3.4） |
-| install | 文件哈希 | 52 个文件 SHA-256 与 `package-manifest.json` 全一致 |
+| install | 版本 | vendor 版本 = 包版本（0.1.1） |
+| install | 文件哈希 | 39 个文件 SHA-256 与 `package-manifest.json` 全一致 |
 | install | node_modules 解析 | `node_modules\dsh-prompt-forge\package.json` 与 vendor 同哈希（同一份文件） |
 | install | lockfile | `pnpm-lock.yaml` 记录 `vendor/dsh-prompt-forge`（junction 模式可能为 WARN） |
 | install | 进程状态 | 提示是否需重启 |
@@ -141,8 +140,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\verify.ps1 -Mode u
 ### 5.2 手工 GUI 验证（install 之后）
 
 1. 完全退出 DSH（含托盘）后重新启动，新建会话。
-2. 输入框右侧、发送键旁出现 **「增强」按钮**；点击弹出**原文 / 增强结果并排**的预览面板，带模型名与耗时。
-3. 点「回填」后输入框上方出现**撤销条**，点「撤销」恢复原文（失败路径不应改动草稿）。
+2. 输入框右侧、发送键旁出现 **「增强」按钮**，悬停提示「重写为结构化提示词」；点击后草稿被**原地重写并回填**。
+3. 输入框上方出现**撤销条**，点「撤销」恢复原文；任何失败路径只显示一行自动消失的提示，草稿保持不变、无弹窗。
 4. 光标在输入框内按 **Ctrl+Alt+E**（默认快捷键）触发同样流程。
 5. 斜杠命令面板里出现 **`/enhance`**。
 6. **设置 → 插件配置** 出现「提示词增强」设置项（模型覆盖 / 温度 / 预算 / 系统提示词 / 快捷键），改动即时生效。
@@ -175,9 +174,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\verify.ps1 -Mode u
 
 ```powershell
 # 1) 用当前运行中的版本覆盖包内插件（假设 DSH 已在 profile 里 link 到 vendor）
-robocopy "$env:USERPROFILE\.dsh\profiles\desktop\vendor\dsh-prompt-forge" "dsh-prompt-forge\plugin\dsh-prompt-forge" /MIR /XD node_modules .git
+robocopy "$env:USERPROFILE\.dsh\profiles\desktop\vendor\dsh-prompt-forge" "dsh-prompt-forge" /MIR /XD node_modules .git installer
 # 2) 重新生成哈希清单
-node "dsh-prompt-forge\tools\build-manifest.mjs"
+node "dsh-prompt-forge\installer\tools\build-manifest.mjs"
 ```
 `node` 用 DSH 自带的可执行文件亦可：
 `D:\Tool\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe`。
@@ -188,7 +187,7 @@ node "dsh-prompt-forge\tools\build-manifest.mjs"
 
 | 包内 | 安装后 |
 |---|---|
-| `plugin\dsh-prompt-forge\` | `<profile>\vendor\dsh-prompt-forge\` |
+| 仓库根（`package.json`、`cordis.patch.yml`、`lib\`、`src\`…） | `<profile>\vendor\dsh-prompt-forge\` |
 | `installer\tools\patch-profile.mjs` | 只被脚本调用，不落地 |
 | `package-manifest.json` | 校验基准，不落地 |
 | 备份文件 | `<profile>\package.json.pre-prompt-forge-pack`、`<profile>\pnpm-lock.yaml.pre-prompt-forge-pack` |
