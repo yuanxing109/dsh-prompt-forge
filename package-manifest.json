@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
   "version": "0.4.0",
-  "generatedAt": "2026-11-13T16:04:15.839Z",
+  "generatedAt": "2026-11-13T16:06:25.310Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -10,7 +10,7 @@
   },
   "bundlePatch": "./cordis.patch.yml",
   "fileCount": 52,
-  "totalBytes": 1440271,
+  "totalBytes": 1441230,
   "files": [
     {
       "path": "LICENSE",
@@ -19,13 +19,13 @@
     },
     {
       "path": "README.md",
-      "size": 30980,
-      "sha256": "d8f612dbd4dc56d5294140a47ba42dfd309db7d10035b70d76eb19ef27b699a0"
+      "size": 31460,
+      "sha256": "9b0a53e43d4b8ad6c7ef47d806e35c71d95d840549129e73299da08cd6f5fd3e"
     },
     {
       "path": "README.zh-CN.md",
-      "size": 27908,
-      "sha256": "125acf0e10e11031d27eff1f1d0c7bbaa53afd1e8055d720ac11a738f6e0223b"
+      "size": 28387,
+      "sha256": "97b9b151ef8e01276d110d0b24d0c89794e015017c60f7a3a84bcc368e76e3fc"
     },
     {
       "path": "cordis.patch.yml",
