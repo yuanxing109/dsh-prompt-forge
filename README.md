@@ -1,195 +1,315 @@
-# dsh-prompt-forge 离线安装包（0.4.0 · 你的修改版）
+# Prompt Forge
 
-把 `dsh-prompt-forge` 插件连同它的修改一起装到任意一台 Windows 的 DeepSeek Harness 里：双击 `install.bat` 安装，双击 `uninstall.bat` 回滚，`verify.bat` 逐项核对结果。全程不依赖 npm registry 上的同名包，装的就是包内这份代码。
 
-仓库：<https://github.com/yuanxing109/dsh-prompt-forge> —— `plugin/dsh-prompt-forge/` 是插件本体，`lib/` 已编译并随仓库提交。
+[![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+[![plugin for dsh web](https://img.shields.io/badge/plugin-dsh%20web-4f46e5)](https://github.com/yuanxing109/dsh-prompt-forge)
+[![version](https://img.shields.io/badge/version-0.3.4-0ea5e9)](https://github.com/yuanxing109/dsh-prompt-forge/blob/main/docs/release-0.3.4.md)
+
+**Prompt enhancement for the [DeepSeek Harness](https://github.com/deepseek-ai) web GUI** — one click turns a rough composer draft into a well-structured prompt: explicit role and goal, executable steps, output format, acceptance criteria, and edge cases. Your intent is never changed, nothing is fabricated, and the original draft is always preserved.
+
+**English** | [简体中文](./README.zh-CN.md)
 
 ---
 
-## 1. 适用环境
+## Why
 
-| 项目 | 要求 | 本机实测 |
+Good agent prompts state *who the model should be*, *what to deliver*, *in what format*, and *how success is judged*. Most drafts don't. This plugin adds a **WorkBuddy-style "enhance" affordance** to the dsh composer: it sends your draft through a low-temperature rewrite pass (via the harness's own LLM service), shows the result next to the original, and lets you apply, copy, or discard it. Undo is one click away, and every failure path leaves your draft exactly as you typed it.
+
+## Features
+
+| | |
+|---|---|
+| ✨ **Composer button** | A small button in the input box's tool row (next to the send button), always at hand |
+| 🔀 **Preview panel** | Original vs. enhanced side by side, with model name and elapsed time |
+| ↩️ **One-click undo** | After applying, a quiet bar above the composer restores the original draft |
+| ⌨️ **Shortcut** | Default `Ctrl+Alt+E`, fully configurable, acts on the composer you are working in |
+| 💬 **`/enhance` command** | Rewrite any text from the slash-command plane; the result never enters model history |
+| 🧠 **Model routing** | Settings pair → current session model → harness default model, in that order |
+| 🔑 **Zero credential setup** | Calls ride the harness LLM service; keys come from the harness credential store |
+| ⚙️ **Live settings** | Every knob (model override, temperature, budgets, system prompt, shortcut) hot-applies from Settings → 插件配置 |
+| 🛡️ **Draft safety** | Empty, over-length, images-only, and command-chip inputs are rejected locally; upstream failures are mapped to readable messages; the draft is never mutated on failure |
+
+![The preview panel running in dsh web: original and enhanced prompt side by side with model info, fill-back and copy actions](./docs/evidence-prompt-forge-panel.png)
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Composer draft] --> B{Local guards<br/>empty / length / chips / busy}
+    B -- pass --> C["POST /prompt-forge/enhance<br/>(loopback-fenced host route)"]
+    B -- reject --> P[Preview panel:<br/>readable error, draft untouched]
+    C --> D["ctx.llm.stream<br/>rewrite with system strategy"]
+    D --> E[Normalize:<br/>strip fences, trim, refuse empty]
+    E --> F[Preview panel:<br/>original / enhanced]
+    F -- Apply --> G["setDraft(enhanced)<br/>original pushed to undo stack"]
+    F -- Cancel / Copy --> H[Draft untouched]
+    G --> U[Undo bar: one click restores]
+```
+
+The plugin is one package with two halves, following the dsh plugin conventions:
+
+- **Host half** (`exports "."`, Node): declares the `prompt-forge` settings schema (schemastery, every field marked `.volatile()` — the host's `describe()` **drops any entry with no volatile field**, so that mark is both what makes the config page appear and the contract for "edits apply to the next request"; the plugin **re-reads it on every request** instead of caching the boot snapshot), registers the `POST /prompt-forge/enhance` route on the shared webserver (loopback-fenced, body-capped), and the `/enhance` slash command. The model call goes through `ctx.llm.stream` with a normalized output pass — the same auxiliary-call discipline the harness applies to session titles: deadline + caller cancellation rechecked during and after the stream, terminal-finish validation, tool-call rejection.
+- **Browser half** (`exports "./client"`): registers the enhance button into the `conversation.input.right` slot and the undo bar into `conversation.input.dock`, binds a live mirror of the settings namespace, and installs the global shortcut. All copy is localized (zh/en) through the harness locale system.
+
+## Requirements
+
+- `dsh >= 0.1.1-rc.2 < 0.3.0` — the range states what has actually been exercised, not an open-ended promise.
+- Boot-verified on `0.1.1-rc.2`, `0.1.2-alpha.3`, `0.1.7-rc.2`, `0.2.0-rc.2`, `0.2.1-rc.2`, and **`0.2.1-rc.5`** (layer mounts, enhance route answers, client bundle builds; on alpha the plugin takes the newer `ctx.settings.installSection` registration path, and on `0.2.0-rc.2` it also passes the runtime's plugin-compatibility gate). `0.2.1-rc.5` was checked by diffing every `@deepseek-ai/dsh-*` package the plugin builds against: apart from `dsh-client-ui-conversation`, whose `lib/` gained a View-tabs More menu and a `whenDraftExists` option on draft initialization, the published trees are **byte-identical** to `0.2.1-rc.2`, and none of the additions touch a contract this plugin uses. On a temporary profile at `rc.5` the plugin composed into the loader tree, `/prompt-forge/enhance` answered with a real model result, `/enhance-stream` emitted live SSE deltas, and the host's own schema dump showed the entry as `config100` with **every field carrying `x-cordis.volatile`** — 16 of 16 on that run, 17 of 17 once `reasoningEffort` landed — the exact condition `SettingsForms.describe()` checks before it renders a page. The `0.2.1-rc.2` check is a **real-host end-to-end smoke**: with the local build installed into a temporary profile, the enhance route returned a real model result; setting that profile's `maxInputChars` to `300` made a 400-character draft fail with `422 {count: 400, max: 300}`, and after editing the same profile to `20000` — **without restarting** — the identical draft went through, so a settings edit reaches the *next* request instead of staying at the boot-time snapshot. The `0.2.0-rc.2` checks include the **dsh desktop application** — the environment this plugin is normally used in. On a `0.2.x` runtime expect some *other* plugins to disappear from the UI: the gate skips any bundle whose `peerDependencies` pin an older `@deepseek-ai/dsh-*` range (observed: `dshmarket`, `dsh-find-plugin`, `dsh-better-sidebar`). The harness has broken several of the APIs this plugin touches: `@deepseek-ai/dsh-settings` changed its registration entry between the two early lines, from `0.1.5-rc.3` the settings service became `SettingsForms` (no synchronous `get`), and `0.2.x` **deleted the `installSettingsSection` / `settingsNamespace` exports outright**; `dsh-agent-default-model` moved the harness default model behind its own `ctx.agentDefaultModel.currentSelection()` service; and the browser-side settings mirror moved from `ctx.settingsScope` to `ctx.configForms`. The plugin probes every generation at runtime and adapts, no configuration needed.
+- The ceiling covers the whole `0.2.x` line (including its prereleases); a `0.3.x` is untested and therefore outside the range. `dsh.engines` **is enforced**: the host's boot preflight marks a mismatched entry `disabled = true`, and only an explicit `--accept-risk` gets past the throw (`Incompatible plugins may cause crashes or data loss`). A wrong range means the plugin does not load — not that it loads with a warning.
+- Node `^22.19.0 || >=24.0.0` (for building from source)
+- Browser peers `react` / `react-dom` (`^18.2.0`) come from the web shell's module registry. The host-half module `@deepseek-ai/dsh-llm` is a **runtime module supplied by the dsh host and is not installed from npm** (the `lib/` bundles keep every package import external), so it is declared as an *optional* peer: an install that does not provide it produces no warning, and the plugin reports a normal error at enhance time rather than failing to load.
+
+| | |
+|---|---|
+| dsh | `>= 0.1.1-rc.2 < 0.3.0` |
+| Node | `^22.19.0 \|\| >=24.0.0` |
+| Plugin | `0.3.x` |
+
+## Install
+
+The repository **is** the plugin package — root `package.json`, `cordis.patch.yml` and the built `lib/` — so dsh installs it straight from GitHub:
+
+```bash
+dsh plugin --profile web add github:yuanxing109/dsh-prompt-forge
+# restart dsh web
+```
+
+The full URL works too (`dsh plugin --profile web add https://github.com/yuanxing109/dsh-prompt-forge`), as does a local clone:
+
+```bash
+git clone https://github.com/yuanxing109/dsh-prompt-forge.git
+dsh plugin --profile web add link:<repo>
+# restart dsh web
+```
+
+`lib/` is committed, so an install is a clone plus a link — no build step, no toolchain.
+
+`installer/` additionally carries an offline Windows installer: `install.bat` detects the dsh installation and profile, copies the plugin into `<profile>\vendor\`, wires the profile manifest, verifies every file hash, and rolls back on failure; `uninstall.bat` and `verify.bat` undo and audit it. [installer/README.md](./installer/README.md) documents each step.
+
+Working on the code: the TypeScript sources are in `src/`, the shipped JavaScript in `lib/`. A full rebuild needs `tsc` plus the project's `scripts/build.mjs`, which this package does not carry — keep `src/` and `lib/` in step by hand, or restore the toolchain from the upstream project.
+
+Uninstall:
+
+```bash
+dsh plugin --profile web remove dsh-prompt-forge
+# check the profile's package.json `dsh.profile.bundles` array for a leftover
+# "dsh-prompt-forge" row and remove it if present, then restart dsh web
+```
+
+## Usage
+
+**Composer button / shortcut** — type (or leave) a draft, hit ✨ or `Ctrl+Alt+E`:
+
+1. Local guards run first: empty drafts, over-length drafts (never auto-truncated — that would change your meaning), images-only drafts, and drafts containing command or file-reference chips are refused with a clear message. Chips are rejected because filling back would destroy them.
+2. The preview panel opens with a cancellable spinner. Your draft stays untouched — the hint says so.
+3. The result phase shows both texts side by side. **Apply** fills the enhanced text back and raises the undo bar; **Copy** puts it on the clipboard; **Cancel** (or `Esc`, or clicking the overlay) discards everything.
+4. The undo bar sits above the composer: one click restores the original. If you keep typing after applying, the bar quietly retires itself so stale text can never overwrite newer edits. Undo entries live **only in the current page's memory** (up to 3 per session) — a page reload, a web restart, or a session switch clears them.
+
+**`/enhance <text>`** — rewrite any text from the slash menu. The result renders in the command plane (copyable) and never enters the conversation history or the model's context. To enhance the *composer draft itself*, use the button or shortcut — the draft lives in the browser. Cancelling a running `/enhance` follows the harness command plane; if the client offers no cancel affordance, the call simply runs to completion or times out.
+
+**Language consistency**: the strategy instructs the model to mirror the input language (Chinese in → Chinese out). This is a best-effort instruction, not a hard guarantee.
+
+## Configuration
+
+Everything lives in the `prompt-forge` settings namespace, edited from the web GUI's **Settings → 插件配置** page. Changes apply to the very next call — no restart. Every enhancement is one billable LLM call: `reasoningEffort` and `maxOutputTokens` bound how many tokens it spends, and the host-side concurrency/rate caps bound how often calls can be made.
+
+| Field | Default | Description |
 |---|---|---|
-| 操作系统 | Windows 10 1809+ / Windows 11（x64 / arm64） | Windows（Desktop 被重定向到 `D:\Documents\Desktop`） |
-| PowerShell | 5.1 及以上（系统自带即可，脚本按 5.1 语法编写） | 系统自带 5.1 + pwsh 7.6 |
-| DSH | 插件声明 `dsh >=0.1.1-rc.2 <0.3.0` | 0.2.2-rc.1 |
-| Node | `^22.19.0 || >=24.0.0`（优先用 DSH 自带 node） | v24.21.0 |
-| pnpm | 优先 DSH 自带 pnpm，其次 PATH；都没有则退回 junction | DSH 自带 pnpm 11.28.5 / PATH pnpm 12.15.0 |
-| DSH 用户目录 | 已初始化：`%USERPROFILE%\.dsh\profiles\<profile>\package.json` | `C:\Users\<你>\.dsh\profiles\desktop` |
+| `enabled` | `true` | Master switch; off hides the button and disables every trigger |
+| `provider` + `model` | empty | Explicit route override; must be filled as a **pair** (or both empty to follow the current session model) |
+| `temperature` | `0.3` | Low temperature keeps the rewrite faithful to the original |
+| `reasoningEffort` | `off` | Reasoning budget sent with the call: `off` / `low` / `high` / `inherit` (omit the field and follow the model's own default). A rewrite is a short, well-specified task, so the model's default budget is pure waste — measured on one and the same draft: `high` spent **2897** output tokens where `off` spent **252**, an 11× difference for the same rewrite. Models that declare no reasoning capability are handled: the harness rejects an explicit effort with `UNSUPPORTED_REASONING_EFFORT`, and the call is retried once with the field omitted, so this setting never breaks such a route |
+| `maxOutputTokens` | `8192` | Output token budget of one enhancement call |
+| `maxInputChars` | `12000` | Input character cap (counted in Unicode code points — an emoji is one character); over-limit drafts are **rejected, never truncated** |
+| `timeoutMs` | `60000` | End-to-end deadline of one call |
+| `systemPrompt` | built-in strategy | Custom strategy text; how it combines with the built-in strategy is set by `strategyMode` |
+| `strategyMode` | `replace-default` | How a custom strategy combines with the built-in one: `replace-default` **swaps it out entirely** (backward compatible, but the built-in hard rules — preserve intent, never fabricate, body-only output, language mirroring — are not retained and must be carried into your own text); `extend-default` **appends your text after the built-in strategy**, keeping those rules in force |
+| `shortcut` | `ctrl+alt+e` | Global shortcut spec (at least one modifier + one alphanumeric/function key — bare keys are ignored so normal typing can never be swallowed); empty disables it |
+| `maxConcurrent` | `2` | Concurrency cap **within a single host process**; extra requests answer `429` (`concurrency-limit`). The browser UI admits exactly one in-flight request (a single preview panel), so this cap mainly protects the `/enhance` command plane and multi-client callers |
+| `rateLimitPerMinute` | `10` | Sliding-window rate cap per minute, **within a single host process**, counting **successful calls only** — failures (timeout / upstream error / cancellation) never consume the window, so a run of failures cannot rate-limit you out; extra requests answer `429` (`rate-limit`) with a `Retry-After` in seconds |
+| `streaming` | `true` | Show the model's output as it streams instead of waiting for the whole rewrite — **display-only**, the final text is still the normalized full result, and the client transparently falls back to the one-shot JSON route when the host or network does not support `text/event-stream` |
+| `contextAware` | `true` | Read the current conversation's recent history and use it to ground the rewrite (resolve pronouns, fill in stated constraints, mirror the established stack and terminology). With no session, no history, or this switch off, the call degrades to the original single-prompt enhancement — context is an optimization, never a prerequisite. **Privacy:** the assembled history snippet is sent to the configured LLM alongside the draft — if the conversation contains secrets, tokens, or other sensitive content, switch `contextAware` off (or scope the conversation before enhancing). |
+| `contextMaxMessages` | `8` | Context window breadth — how many recent `user`/`assistant` turns may ground the rewrite; `0` admits none |
+| `contextMaxChars` | `4000` | Context window depth — character budget of the assembled history snippet, spent newest-first so the most recent turns win when the budget is tight; `0` admits none |
+| `provider` + `model` values | — | Match the harness settings: each key under `llm-pi-ai.providers` (e.g. `zhipu`, `muyuu`) is a provider and each `models[].id` under it (e.g. `glm-5.3-flash`) is a model. Example pair: `provider: zhipu` + `model: glm-5.3-flash` |
 
-脚本不写死任何本机路径：DSH 安装目录按「参数 → 注册表 Uninstall 项 → 运行进程 → `%LOCALAPPDATA%\Programs\DeepSeek Harness` → `%ProgramFiles%`」顺序探测；profile 按「参数 → `desktop` → 唯一存在的 profile」顺序确定；桌面路径只在打包时用到，安装时不需要。
+**Model routing precedence:** explicit settings pair → the route recorded in the current session's request header → the harness-wide default model (`agent-default-model`). If none of them names a route (e.g. a fresh session with no default model), the plugin fails with an actionable message instead of guessing.
 
----
+## The built-in enhancement strategy
 
-## 2. 打包后的目录结构
+The default system prompt instructs the model to be a prompt-rewriting expert and to apply what the draft actually needs:
 
-```
-dsh-prompt-forge\
-├─ install.bat                  # 双击入口 → install.ps1
-├─ install.ps1                  # 安装：校验 → 探测环境 → 复制 vendor → 改清单 → pnpm 接线 → 自动校验
-├─ uninstall.bat                # 双击入口 → uninstall.ps1
-├─ uninstall.ps1                # 卸载：还原清单 → 清理 node_modules → 删 vendor → 自动校验
-├─ verify.bat / verify.ps1      # 校验器：-Mode install | uninstall
-├─ README.md                    # 本文件
-├─ package-manifest.json        # 52 个文件的 SHA-256、版本、engines（安装前校验用）
-├─ tools\
-│  ├─ patch-profile.mjs         # 只改 profile package.json：add / remove / status（含备份与还原）
-│  └─ build-manifest.mjs        # 重新生成 package-manifest.json
-└─ plugin\
-   └─ dsh-prompt-forge\         # 你修改过的插件本体（52 文件 / 1.37 MB）
-      ├─ package.json           # v0.4.0, type=module, dsh.bundle.patch=./cordis.patch.yml
-      ├─ cordis.patch.yml       # bundle 补丁（插入插件行）
-      ├─ lib\index.js           # 宿主半区（已编译）
-      ├─ lib\client.js          # 浏览器半区（已编译，你的改动在这里）
-      ├─ lib\client.js.pre-v04.bak   # 你的改动前备份，一并保留
-      ├─ src\**                # TS/TSX 源码（含 client/*、enhance-routes.ts、enhancer.ts…）
-      ├─ docs\**               # 版本说明与截图
-      └─ README.md / README.zh-CN.md / LICENSE
-```
+1. **Role and goal** — state who the assistant acts as and what the deliverable is.
+2. **Context and constraints** — add only what the draft implies; never invent facts, data, names, or requirements.
+3. **Steps** — break vague or multi-part requests into numbered, executable steps.
+4. **Output format** — specify structure, language, length, and style where implied.
+5. **Acceptance criteria** — state how to recognize a correct result.
+6. **Boundary conditions** — list edge cases and what to do when information is missing.
 
-包内不含 `node_modules`：插件的唯一运行时依赖 `@deepseek-ai/schemastery` 由目标机 profile 自己的 `pnpm install` 解析，跟其它插件共用同一套依赖树。
+Hard rules: preserve intent exactly (never remove, alter, or contradict user information); never fabricate — insert an explicit placeholder like `(待补充：…)` / `(TBD: …)` for unknown details; keep the scope unchanged; output **only** the rewritten body (no explanations, fences, or pleasantries); mirror the input language; stay within roughly 1–3× the original length; lightly polish already-well-formed prompts instead of inflating them.
 
----
+Set `systemPrompt` in the settings to use your own strategy; `strategyMode` decides how it combines. The default `replace-default` is a **complete replacement** — the built-in safety constraints (preserve intent, never fabricate, body-only output, mirror the input language, treat the framed draft as data) are not retained automatically, so your own strategy must include them. Switching to `extend-default` appends your text after the built-in strategy instead, keeping those rules in force.
 
-## 3. 安装
+## Error handling & edge cases
 
-### 3.1 双击方式
-
-双击 `install.bat`。脚本会自动：校验包完整性 → 找 DSH/Node/pnpm → 要求 DSH 已退出 → 装进 profile → 自动跑校验。
-
-### 3.2 命令行方式
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1
-# 指定 profile / 强制结束 DSH / 装完直接启动
-powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -Profile desktop -Force -Launch
-# 无 pnpm 的机器（纯离线、只建 junction）
-powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -NoPnpm
-```
-
-| 参数 | 作用 |
+| Case | Behavior |
 |---|---|
-| `-Profile <name>` | 指定 profile，默认自动探测（优先 `desktop`） |
-| `-DshHome <dir>` | 指定 DSH 用户目录，默认 `%USERPROFILE%\.dsh` 或 `$env:DSH_HOME` |
-| `-DshRoot <dir>` | 指定 DSH 安装根目录，默认自动探测 |
-| `-Force` | 检测到 DeepSeek Harness 进程时强制结束（不加则直接报错让你手动退出） |
-| `-NoPnpm` | 跳过 pnpm install，直接建立 `node_modules\dsh-prompt-forge` junction |
-| `-SkipIntegrityCheck` | 跳过包内文件 SHA-256 校验 |
-| `-SkipProcessCheck` | 跳过运行进程检测（仅自动化/CI 用） |
-| `-SkipVerify` | 安装后不自动跑 verify.ps1 |
-| `-Launch` | 安装完成后启动 DSH |
-| `-NoPause` | 结束时不等待回车 |
+| Empty / whitespace / invisible-only draft | Local refusal: "input box is empty" |
+| Draft over `maxInputChars` | Rejected locally and at the route with exact counts; **no auto-truncation** |
+| Images attached but no text | Refused: text-only feature |
+| Command or file-reference chips in the draft | Refused: fill-back would destroy the chips |
+| Submitting / busy phase or a request already in flight | Refused with "try again in a moment" |
+| Per-minute cap exceeded | `429` (`rate-limit`) with a `Retry-After` in seconds; the host message names the exact wait. The window counts successful calls only — failures do not consume it |
+| Concurrency cap full | `429` (`concurrency-limit`), no `Retry-After` — a slot frees whenever an in-flight call settles |
+| Upstream model failure | Stable codes mapped to readable hints: `AUTH` → check API key, `RATE_LIMIT` → retry later, `QUOTA_EXCEEDED` → check balance, `CONTEXT_WINDOW_EXCEEDED` → shorten input, `NO_ADAPTER`/unconfigured → configure a model |
+| Output reaches `maxOutputTokens` | Refused with a hint to raise the cap or shorten the draft |
+| Route's model declares no reasoning capability | The `UNSUPPORTED_REASONING_EFFORT` refusal is not shown: the effort is dropped and the call retried once. `reasoningEffort: inherit` never sends the field, so it never hits this path |
+| Model returns empty / fence-wrapped / tool-call output | Normalized (fences stripped) or refused; retryable |
+| Timeout | `504`-mapped message with the configured seconds; retryable |
+| Browser tab closed mid-flight | The host route detects the disconnect and aborts the model call |
+| Session switch | Panel state, undo stack, and shortcut targeting are per-session; switching closes the panel and clears its undo entries |
 
-### 3.3 安装做了什么
+Every failure surfaces inside the plugin's own panel; the composer draft is never modified by a failed call, so manual input continues undisturbed.
 
-1. **校验**：按 `package-manifest.json` 逐文件比对 SHA-256，防止复制不完整或被篡改。
-2. **探测**：DSH 安装目录 → 自带 node（`resources\runtime\primary-runtime\dependencies\node\bin\node.exe`）与自带 pnpm（同目录 `...\pnpm\bin\pnpm.cjs`）；都没有才回退 PATH。校验 Node 版本满足 `^22.19.0 || >=24.0.0`。
-3. **复制**：`plugin\dsh-prompt-forge` → `<profile>\vendor\dsh-prompt-forge`（robocopy 镜像）。
-4. **改清单**（先备份）：
-   - `package.json` 的依赖写成 `"dsh-prompt-forge": "file:./vendor/dsh-prompt-forge"`；
-   - `dsh.profile.bundles` 去重并确保含 `dsh-prompt-forge`；
-   - 备份文件：`package.json.pre-prompt-forge-pack`、`pnpm-lock.yaml.pre-prompt-forge-pack`。
-5. **接线**：在 profile 目录跑 `pnpm install --prefer-offline`，把 vendor 以 link 形式接入 `node_modules`（node 解析到 vendor，改 vendor 里的文件即改运行代码）。pnpm 不可用或失败时退回 `node_modules\dsh-prompt-forge` junction，并提示日志路径。
-6. **自检**：自动调用 `verify.ps1 -Mode install`，失败即返回非 0。
+## Error codes & localization
 
-装完需要**完全退出 DSH（含托盘）再启动**，新代码才会加载。
+The host route answers structured errors of the shape `{ code, message?, params? }`: the browser renders its localized primary line from `code` + `params` using the current language dictionary, and `message` — when present — is an optional diagnostic detail (the provider's raw failure text, a config error) shown verbatim beneath the primary line. The `/enhance` command plane has no locale dictionary; a host-side renderer of the same errors produces the Chinese text directly.
 
----
+| Error code | HTTP status | Browser primary copy (dictionary key) | Params |
+|---|---|---|---|
+| `rejected` | 403 / 413 / 415 / 422 | generic `error.rejected`; with `{ count, max }` it reuses `error.tooLong` | over-length input: `{ count, max }` |
+| `rate-limit` | 429 | `error.rateLimit` | `{ limit, retryAfterSeconds }` |
+| `concurrency-limit` | 429 | `error.concurrencyLimit` | `{ max }` |
+| `timeout` | 504 | `error.timeout` | `{ seconds }` |
+| `unconfigured` | 409 | `error.unconfigured` | — |
+| `upstream` | 502 | generic `error.upstream`; with `reason` it uses `error.upstream.{reason}` (`auth` / `invalidCredential` / `rateLimit` / `quota` / `empty` / `contextWindow` / `toolCall` / `maxTokens`) | `{ reason }` |
+| `internal` | 500 / 502 | `error.internal` | — |
 
-## 4. 卸载
+## Troubleshooting
 
-双击 `uninstall.bat`（等价于 `powershell -NoProfile -ExecutionPolicy Bypass -File uninstall.ps1`），参数同上（`-Profile`/`-DshHome`/`-DshRoot`/`-Force`/`-SkipVerify`/`-NoPause`）。
+**Button missing / shortcut dead**
+Settings → 插件配置 → `prompt-forge` section: is `enabled` true? Is the plugin installed (`dsh plugin --profile web list`) and `dsh web` restarted? Any apply error in the browser console?
 
-卸载顺序：
+**"No model resolved for the enhancement"**
+Routing follows settings pair → session model → harness default; if all three are empty there is nothing to call. Pair `provider`/`model` in the settings, or send a message in the current session first so it carries a model route. Check the `agent-default-model` settings section.
 
-1. 确认 DSH 已退出（或 `-Force`）；
-2. `tools\patch-profile.mjs remove`：**有安装前备份就整体还原** `package.json` 与 `pnpm-lock.yaml`；没有备份则只剥离依赖与 bundle 条目；
-3. `pnpm install` 清理 `node_modules` 接线（失败则手动移除指向 vendor 的 junction）；
-4. 删除 `<profile>\vendor\dsh-prompt-forge`（空掉的 `vendor` 目录一并删除）；
-5. 自动调用 `verify.ps1 -Mode uninstall`。
+**Authentication failures**
+The `message` detail line carries the concrete cause (e.g. 401). Check the provider's API key in the harness credential store; quota/balance problems surface as the `quota` hint.
 
-**卸载语义**：回到「安装之前」的状态。如果这台机器装之前就有 registry 版 `dsh-prompt-forge`，卸载会把清单还原成原来的版本写法（本机为 `0.3.4`），pnpm 会把它装回来；你的修改版仍在桌面包里，随时可再装。要连原版一起移除，请到 DSH 插件管理器里再卸一次。
+**Rate-limited (429) right after a run of failures**
+Should not happen — the window counts successes only. If it still does, check whether several profiles/processes are mounted (each counts independently and stacks up) or whether `rateLimitPerMinute` is set too low.
 
----
+**Poor rewrites (fabrication, dropped requirements, broken formatting)**
+With `strategyMode` set to `replace-default`, a custom `systemPrompt` replaces the built-in strategy entirely — its hard rules (never fabricate, body-only output, mirror the input language) are not retained automatically; carry them into your own text or switch to `extend-default`.
 
-## 5. 验证安装 / 卸载是否成功
+**Behavior changed after upgrading**
+Since 0.1.6 the host no longer sends Chinese primary-line copy: the browser localizes errors by code (`message` is now only a diagnostic detail), and the `rate-limit` window counts successful calls only. No configuration change needed.
 
-### 5.1 自动校验（脚本）
+## Security model
 
-```powershell
-verify.bat                                  # 等价 -Mode install
-powershell -NoProfile -ExecutionPolicy Bypass -File verify.ps1 -Mode uninstall
+The enhance route is served by your own dsh host and reachable **only from this machine**:
+
+- **Socket fence** — requests from non-loopback addresses are refused (`127.0.0.1` / `::1` only). Note this means *any local process* can call the route; it carries no user authentication.
+- **Host allowlist** — the route also validates the `Host` header against `localhost` / `127.0.0.1` / `[::1]`, which defeats DNS-rebinding (a rebound attacker domain keeps the loopback socket address but carries the attacker's hostname and is refused). Responses are `cache-control: no-store`.
+- **Abuse caps** — an `Origin` gate refuses browser calls from non-local pages, and from pages served by *any other* local port (the origin's port must equal the port the request was addressed to, so a dev tool on `localhost:4000` cannot spend your model quota); the route enforces a concurrency cap (`maxConcurrent`, default 2) and a per-minute rate limit (`rateLimitPerMinute`, default 10), answering `429` beyond either. Both counters live **in a single host process's memory**: multiple processes, a cluster, or several profiles mounting the plugin each count independently, so the global cap would be exceeded — this plugin supports single-process deployments only and ships no shared rate-limit store.
+- **Proxy rejection** — requests carrying `X-Forwarded-For` / `Forwarded` headers are refused outright: those headers only exist when a proxy is in the path, which the trust model does not cover.
+- **Request-level timeouts are the host's and Node's job** — the plugin bounds the body size (including a Content-Length fast reject) and the per-call `timeoutMs`; connection-level timeouts (headers / request timeout / keep-alive) are server-level settings on the shared `http.Server` that a prefix route must not touch, so they fall to the host and Node's defaults (60 s headers / 300 s request).
+- **Not for reverse-proxy exposure** — if you put dsh web behind a proxy that listens on the LAN, external callers appear as loopback to the route and the fence is moot. Do not expose a proxied host without adding your own authentication at the proxy.
+- **Prompt-injection boundary** — the draft is framed between `<raw_prompt>` tags, literal closing tags inside the draft are neutralized, and the strategy prompt treats the framed text as pure data. This lowers the risk of simple tag-escape; prompt-based boundaries are best-effort, not a guarantee. Enhancements run with your own credentials and the result is only ever shown back to you.
+- **Conversation-context data sharing** — when `contextAware` is on (default), the plugin assembles the recent `user`/`assistant` history of the current session (capped by `contextMaxMessages` / `contextMaxChars`) and sends it to the configured LLM alongside the draft. That history may carry secrets the user typed earlier in the session — API keys, tokens, internal hostnames, customer names — which the LLM provider will see verbatim. Treat the switch as the privacy boundary: turn it off (or end the session and start a fresh one before enhancing) when the conversation should not leave the machine. The hard rules on context use in the strategy prompt forbid introducing facts the raw prompt does not support, but they cannot un-share what has already been sent.
+
+## Architecture
+
+```
+src/
+├── index.ts            host apply(): settings section + route + command
+├── config.ts           schemastery schema + resolution (paired route validation)
+├── prompts.ts          built-in strategy system prompt + <raw_prompt> framing
+├── enhancer.ts         the ctx.llm auxiliary call (route resolution, deadline
+│                       racing, finish validation, structured errors + host render)
+├── enhance-routes.ts   POST /prompt-forge/enhance + /enhance-stream (loopback
+│                       fence, body cap, admission gate)
+├── enhance-command.ts  /enhance slash command (host command registry)
+├── orchestrate.ts      shared route resolution + context assembly for both entries
+├── context.ts          bounded, neutralized <conversation_context> snippet
+├── loopback.ts         127.0.0.1/::1 fence for the route
+├── http.ts             bounded JSON body reader / writer
+├── sse.ts              backpressure-aware SSE frame writer
+├── shared/             wire protocol types, input checks, output normalization
+│                       (imported by both halves)
+└── client/             browser half
+    ├── index.tsx       slots registration + settings mirror + shortcut listener
+    ├── EnhanceButton   conversation.input.right entry: guards + call orchestration
+    ├── ResultPanel     overlay panel: compare / apply / copy / cancel / retry
+    ├── UndoBar         conversation.input.dock entry: restore affordance
+    ├── ui-state.ts     external store shared by components (panel, undo, sessions)
+    ├── enhance-client  fetch client with abort + typed errors (SSE + one-shot)
+    ├── undo-stack.ts   per-session LIFO (depth 3, global cap 60, LRU eviction)
+    ├── session-key.ts  per-composer UI key (host sessionId, else stable fallback)
+    ├── shortcut.ts     pure combo parsing / matching
+    ├── settings.ts     client mirror of the settings namespace
+    ├── locales.ts      zh + en dictionaries (harness locale namespace)
+    └── styles.ts       self-injected stylesheet (dsh-pf- prefixed classes)
 ```
 
-| 模式 | 检查项 | 通过标准 |
-|---|---|---|
-| install | 依赖写法 | `package.json` 中为 `file:./vendor/dsh-prompt-forge` |
-| install | bundle 注册 | `dsh.profile.bundles` 中恰好 1 条 `dsh-prompt-forge` |
-| install | 必要文件 | vendor 下 `package.json`、`cordis.patch.yml`、`lib\index.js`、`lib\client.js` 齐全 |
-| install | 版本 | vendor 版本 = 包版本（0.3.4） |
-| install | 文件哈希 | 51 个文件 SHA-256 与 `package-manifest.json` 全一致 |
-| install | node_modules 解析 | `node_modules\dsh-prompt-forge\package.json` 与 vendor 同哈希（同一份文件） |
-| install | lockfile | `pnpm-lock.yaml` 记录 `vendor/dsh-prompt-forge`（junction 模式可能为 WARN） |
-| install | 进程状态 | 提示是否需重启 |
-| uninstall | 依赖清理 | 依赖不再是 `file:./vendor/...`（已还原或已删除） |
-| uninstall | bundle 一致性 | 有 `node_modules` 条目则保留 1 条，无条目则 0 条 |
-| uninstall | vendor 目录 | 已删除 |
-| uninstall | 接线 | 不再指向 vendor |
-| uninstall | lockfile | 无 vendor 记录 |
+Build outputs: `lib/index.js` (host half, ESM, package imports kept external) and `lib/client.js` (browser half bundled to CJS inside the `window.__ModuleLoader__.load({ id, factory })` envelope the dsh web shell expects). Both are committed so GitHub installs need no build step; CI fails if `lib/` drifts from `src/`.
 
-判定：任一项 **FAIL** → 退出码 1；只有 **WARN** → 退出码 0。输出逐行 `PASS/WARN/FAIL + 检查项 + 明细`，末尾给出 `结论: PASS/FAIL`。
+## Development
 
-### 5.2 手工 GUI 验证（install 之后）
+Daily debug loop (link install + watch): install once via `dsh plugin --profile web add link:...`, run `npm run watch`, and restart `dsh web` after host-half changes — see the **Development** section below.
 
-1. 完全退出 DSH（含托盘）后重新启动，新建会话。
-2. 输入框右侧、发送键旁出现 **「增强」按钮**；点击弹出**原文 / 增强结果并排**的预览面板，带模型名与耗时。
-3. 点「回填」后输入框上方出现**撤销条**，点「撤销」恢复原文（失败路径不应改动草稿）。
-4. 光标在输入框内按 **Ctrl+Alt+E**（默认快捷键）触发同样流程。
-5. 斜杠命令面板里出现 **`/enhance`**。
-6. **设置 → 插件配置** 出现「提示词增强」设置项（模型覆盖 / 温度 / 预算 / 系统提示词 / 快捷键），改动即时生效。
-7. 以上任一缺失时看日志：`%USERPROFILE%\.dsh\logs` 最新日志里 `dsh-prompt-forge` 行是否有加载错误。
-
-### 5.3 手工 GUI 验证（uninstall 之后）
-
-1. 重启 DSH，新建会话：**没有**「增强」按钮，Ctrl+Alt+E 无反应，`/enhance` 不在命令面板。
-2. **设置 → 插件配置** 中「提示词增强」设置项消失。
-3. 日志中不再出现该插件的加载行。
-
----
-
-## 6. 故障排查
-
-| 现象 | 处理 |
-|---|---|
-| 双击后窗口一闪而过 | 用命令行跑 `powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1` 看报错 |
-| `无法加载文件…未数字签名` | 已在 .bat 中带 `-ExecutionPolicy Bypass`；手动执行时也要带该参数 |
-| `未找到 DSH 用户目录` | 先启动一次 DSH 桌面版完成初始化，或 `-DshHome` 指定 |
-| `DeepSeek Harness 正在运行` | 完全退出（含托盘/后台进程）后重试，或 `-Force` |
-| `未找到 Node 运行时` | 安装 Node.js 22.19+ 或 24+，或 `-DshRoot` 指向含 `resources\runtime` 的 DSH 目录 |
-| pnpm install 报 `ERR_PNPM_...` | 看 `<profile>\vendor\dsh-prompt-forge\.install\pnpm-install-*.log`；离线机器可加 `-NoPnpm`（junction 安装，功能等价） |
-| 装完按钮不出现 | 确认已重启；verify.bat 全 PASS 仍不出现则查日志与 DSH 版本是否在声明区间 |
-| 卸载后想彻底清除 | 卸载只还原安装前状态；要移除原有 registry 版，去 DSH 插件管理器卸载 |
-
----
-
-## 7. 更新包内插件（以后改了代码再打包）
-
-```powershell
-# 1) 用当前运行中的版本覆盖包内插件（假设 DSH 已在 profile 里 link 到 vendor）
-robocopy "$env:USERPROFILE\.dsh\profiles\desktop\vendor\dsh-prompt-forge" "dsh-prompt-forge\plugin\dsh-prompt-forge" /MIR /XD node_modules .git
-# 2) 重新生成哈希清单
-node "dsh-prompt-forge\tools\build-manifest.mjs"
+```bash
+npm install
+npm run typecheck     # tsc --noEmit
+npm test              # unit + real-http + component suites
+npm run build         # typecheck + both halves
+npm run watch         # esbuild watch for both halves
 ```
-`node` 用 DSH 自带的可执行文件亦可：
-`D:\Tool\DeepSeek Harness\resources\runtime\primary-runtime\dependencies\node\bin\node.exe`。
 
----
+**Test coverage:** input validation, output normalization, the enhancer against stubbed `ctx.llm` streams, a real-`node:http` route suite (loopback Host fence, disconnect abort, error envelopes), the loopback/Host fence units, prompt framing, config resolution, the undo stack, shortcut parsing, client settings, and React component tests locking the enhance → apply → undo flow (guards, stale marking, diverged-draft undo semantics).
 
-## 8. 包内文件与 profile 的对应关系（速查）
+**Release process (maintainers):**
 
-| 包内 | 安装后 |
-|---|---|
-| `plugin\dsh-prompt-forge\` | `<profile>\vendor\dsh-prompt-forge\` |
-| `tools\patch-profile.mjs` | 只被脚本调用，不落地 |
-| `package-manifest.json` | 校验基准，不落地 |
-| 备份文件 | `<profile>\package.json.pre-prompt-forge-pack`、`<profile>\pnpm-lock.yaml.pre-prompt-forge-pack` |
+```bash
+npm version patch   # or minor / major — bumps package.json and tags
+npm run build       # make lib/ match src/
+git push --follow-tags
+npm publish         # with 2FA OTP, or a granular token with "bypass 2FA" checked
+```
+
+CI runs typecheck + tests + build on every push/PR and rejects merges where `lib/` differs from the committed build.
+
+## FAQ
+
+**Why is my draft rejected when it contains `/commands` or `@references`?**
+The fill-back writes plain text via `inputActions.setDraft`, which would destroy the chips. Remove them, enhance, then re-insert.
+
+**Why isn't over-length input auto-truncated?**
+Truncation silently changes your meaning — the plugin refuses and shows the exact counts instead.
+
+**Can I pin a specific model?**
+Fill `provider` and `model` **as a pair** in the settings (e.g. your harness-configured provider route). Leave both empty to follow the current session's model.
+
+**Where does my draft go?**
+Browser → your own dsh host over a loopback-only route → the harness LLM service → the configured model provider. Nothing is sent anywhere else, and the enhancement never enters the session's model history.
+
+**Does it work with the official DeepSeek route?**
+Yes — it rides `ctx.llm`, so any provider the harness serves (DeepSeek official, OpenAI-compatible gateways) works.
+
+## Manual smoke checklist
+
+After installing and restarting `dsh web`:
+
+1. Settings → 插件配置 shows the `prompt-forge` section.
+2. The ✨ button sits next to the send button; `Ctrl+Alt+E` triggers the same flow.
+3. Empty input → refusal panel; a valid draft → preview with model info; Apply fills back; Undo restores; Copy works.
+4. `/enhance <text>` renders a copyable result without touching model history.
+5. All three model routes work: pinned settings pair, a session's model, and the harness default.
+
+## Acknowledgments
+
+Plugin structure, the loopback fence, and the settings-section pattern follow the conventions established by the dsh plugin family — in particular [`@linxin666/dsh-tool-describe-image`](https://www.npmjs.com/package/@linxin666/dsh-tool-describe-image).
+
+## License
+
+[Apache-2.0](./LICENSE)

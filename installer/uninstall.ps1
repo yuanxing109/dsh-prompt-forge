@@ -37,8 +37,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageRoot = $PSScriptRoot
-$patchTool = Join-Path $packageRoot 'tools\patch-profile.mjs'
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$patchTool = Join-Path $PSScriptRoot 'tools\patch-profile.mjs'
 $verifyScript = Join-Path $packageRoot 'verify.ps1'
 
 function Write-Section([string]$text) { Write-Host ''; Write-Host ('==> ' + $text) -ForegroundColor Cyan }

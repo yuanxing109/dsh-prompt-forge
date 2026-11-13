@@ -32,8 +32,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageRoot = $PSScriptRoot
-$manifestFile = Join-Path $packageRoot 'package-manifest.json'
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$manifestFile = Join-Path $PSScriptRoot 'package-manifest.json'
 $results = New-Object System.Collections.Generic.List[object]
 
 function Add-Result([string]$name, [string]$status, [string]$detail) {

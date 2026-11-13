@@ -3,7 +3,7 @@
 
 [![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![plugin for dsh web](https://img.shields.io/badge/plugin-dsh%20web-4f46e5)](https://github.com/yuanxing109/dsh-prompt-forge)
-[![version](https://img.shields.io/badge/version-0.4.0-0ea5e9)](https://github.com/yuanxing109/dsh-prompt-forge/blob/main/plugin/dsh-prompt-forge/docs/release-0.4.0.md)
+[![version](https://img.shields.io/badge/version-0.3.4-0ea5e9)](https://github.com/yuanxing109/dsh-prompt-forge/blob/main/docs/release-0.3.4.md)
 
 **DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框里的草稿改写为结构化提示词:明确的角色与目标、可执行步骤、输出格式、验收标准、边界条件。不改变原意、不凭空编造需求,原文始终保留。
 
@@ -63,33 +63,37 @@ flowchart LR
 |---|---|
 | dsh | `>= 0.1.1-rc.2 < 0.3.0` |
 | Node | `^22.19.0 \|\| >=24.0.0` |
-| 插件 | `0.4.x` |
+| 插件 | `0.3.x` |
 
 ## 安装
 
-仓库里同时装着两样东西：插件本体，和一套不依赖网络的自包含安装器。
-
-- `plugin/dsh-prompt-forge/` —— 插件本体；构建产物 `lib/` 已随仓库提交，安装时不需要构建。
-- 仓库根 —— `install.bat` / `uninstall.bat` / `verify.bat`，负责装进本机 profile、回滚、以及逐文件哈希校验。
-
-用 CLI 注册：
+仓库本身就是插件包 —— 根目录的 `package.json`、`cordis.patch.yml` 与已编译的 `lib/` —— 所以 dsh 可以直接从 GitHub 安装：
 
 ```bash
-git clone https://github.com/yuanxing109/dsh-prompt-forge.git
-dsh plugin --profile web add link:<repo>\plugin\dsh-prompt-forge
+dsh plugin --profile web add github:yuanxing109/dsh-prompt-forge
 # 重启 dsh web
 ```
 
-Windows 上最省事的是双击仓库根的 `install.bat`：它会探测 dsh 安装目录与 profile，把插件复制到 `<profile>\vendor\`，改好清单，再跑一遍校验。仓库根的 README 写清了每一步和回滚方式。
+写成完整 URL 也可以（`dsh plugin --profile web add https://github.com/yuanxing109/dsh-prompt-forge`），本地克隆同理：
 
-改代码：`cd plugin/dsh-prompt-forge && npm install && npm run build`，然后重载 `dsh web`。
+```bash
+git clone https://github.com/yuanxing109/dsh-prompt-forge.git
+dsh plugin --profile web add link:<repo>
+# 重启 dsh web
+```
+
+`lib/` 已随仓库提交，安装就是一次克隆加一次链接，不需要构建、不需要工具链。
+
+`installer/` 另带一套 Windows 离线安装器：`install.bat` 探测 dsh 安装目录与 profile，把插件复制到 `<profile>\vendor\`，改好清单，逐文件校验哈希，失败即回滚；`uninstall.bat` 与 `verify.bat` 负责还原与核对。[installer/README.md](./installer/README.md) 写清了每一步。
+
+改代码：TypeScript 源码在 `src/`，实际运行的 JavaScript 在 `lib/`。完整重建需要 `tsc` 与项目的 `scripts/build.mjs`，本包没有随附 —— 要么手工让 `src/` 与 `lib/` 保持一致，要么从上游项目取回工具链。
 
 卸载：
 
 ```bash
 dsh plugin --profile web remove dsh-prompt-forge
-# 检查 profile 的 package.json 里 `dsh.profile.bundles` 是否有残留的
-# "dsh-prompt-forge" 行，有就手动删掉，然后重启 dsh web
+# 检查 profile 的 package.json `dsh.profile.bundles` 数组里是否残留
+# "dsh-prompt-forge" 行，有则删掉，然后重启 dsh web
 ```
 
 ## 使用方法

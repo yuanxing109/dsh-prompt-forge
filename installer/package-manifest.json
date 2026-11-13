@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
-  "version": "0.4.0",
-  "generatedAt": "2026-11-13T16:06:49.562Z",
+  "version": "0.3.4",
+  "generatedAt": "2026-11-13T16:23:52.654Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -10,8 +10,13 @@
   },
   "bundlePatch": "./cordis.patch.yml",
   "fileCount": 52,
-  "totalBytes": 1441237,
+  "totalBytes": 1438171,
   "files": [
+    {
+      "path": ".gitignore",
+      "size": 67,
+      "sha256": "b459836a100db8772b5a25c94bda85d6a141b3f1de4e1cdb1e4ab219f8756ab4"
+    },
     {
       "path": "LICENSE",
       "size": 11345,
@@ -19,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 31460,
-      "sha256": "9b0a53e43d4b8ad6c7ef47d806e35c71d95d840549129e73299da08cd6f5fd3e"
+      "size": 31798,
+      "sha256": "ea4dbb68fb2624ce204e73fad5f30a9889caac15f253da5a6204a3abf466b544"
     },
     {
       "path": "README.zh-CN.md",
-      "size": 28387,
-      "sha256": "97b9b151ef8e01276d110d0b24d0c89794e015017c60f7a3a84bcc368e76e3fc"
+      "size": 28698,
+      "sha256": "29781fe59e8a25cfab12ebbe19b8a2801917626d755a265d982ef2914e66e591"
     },
     {
       "path": "cordis.patch.yml",
-      "size": 802,
-      "sha256": "0e8dd60beafbe38f163c82640631cdc4d11c1fd283d933696141e15dd3eec3f9"
+      "size": 842,
+      "sha256": "87af954d56f9430d2b12832ea74c38127b08cb7a55ae36b51118922988f65675"
     },
     {
       "path": "docs/code-review-2026-09.md",
@@ -93,11 +98,6 @@
       "sha256": "b782748dad22afdaf831a02de20afb48f6230543597c65278086b79b0b0cfabe"
     },
     {
-      "path": "docs/release-0.4.0.md",
-      "size": 3822,
-      "sha256": "c1896140d45f06ed0534650562c1856e8bc44c36661b48ba6447e1ade7e2fa0b"
-    },
-    {
       "path": "lib/client.js",
       "size": 95637,
       "sha256": "33a94b3f0783c20747a2d479288aaf442a8aab928abb9bd5079ddebccaa2cf6e"
@@ -120,7 +120,7 @@
     {
       "path": "package.json",
       "size": 3015,
-      "sha256": "c599ce368c9c4b51baf0e5553515c94ee0b7fb678a3f209412033addee6fb77a"
+      "sha256": "619ad07d1882d6da927de6004c98a466a8c547ad38d051dd74248a9dc61958f4"
     },
     {
       "path": "src/client/EnhanceButton.tsx",

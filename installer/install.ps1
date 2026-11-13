@@ -50,11 +50,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageRoot = $PSScriptRoot
-$pluginSrc = Join-Path $packageRoot 'plugin\dsh-prompt-forge'
-$patchTool = Join-Path $packageRoot 'tools\patch-profile.mjs'
-$manifestFile = Join-Path $packageRoot 'package-manifest.json'
-$verifyScript = Join-Path $packageRoot 'verify.ps1'
+# 仓库根 = installer 的上一级；插件包根就是仓库根
+$packageRoot = Split-Path -Parent $PSScriptRoot
+$pluginSrc = $packageRoot
+$patchTool = Join-Path $PSScriptRoot 'tools\patch-profile.mjs'
+$manifestFile = Join-Path $PSScriptRoot 'package-manifest.json'
+$verifyScript = Join-Path $PSScriptRoot 'verify.ps1'
 
 function Write-Section([string]$text) { Write-Host ''; Write-Host ('==> ' + $text) -ForegroundColor Cyan }
 function Write-Ok([string]$text) { Write-Host ('  [ok]   ' + $text) -ForegroundColor Green }
@@ -176,7 +177,7 @@ try {
 
 Write-Section '1/7 校验包完整性'
 foreach ($required in @($pluginSrc, $patchTool, $manifestFile)) {
-  if (-not (Test-Path $required)) { Finish ('包文件缺失: ' + $required + '（请把整个 dsh-prompt-forge-package 目录一起复制）') }
+  if (-not (Test-Path $required)) { Finish ('包文件缺失: ' + $required + '（请把整个仓库目录一起复制）') }
 }
 $manifest = Get-Content $manifestFile -Raw | ConvertFrom-Json
 $expectedVersion = [string]$manifest.version
@@ -272,7 +273,7 @@ $vendorRoot = Join-Path $profileDir 'vendor'
 $vendorDir = Join-Path $vendorRoot 'dsh-prompt-forge'
 if (-not (Test-Path $vendorRoot)) { New-Item -ItemType Directory -Path $vendorRoot | Out-Null }
 if (Test-Path $vendorDir) { Remove-Item -Path $vendorDir -Recurse -Force }
-$null = robocopy $pluginSrc $vendorDir /E /NFL /NDL /NJH /NJS /NP /R:2 /W:2
+$null = robocopy $pluginSrc $vendorDir /E /NFL /NDL /NJH /NJS /NP /R:2 /W:2 /XD installer .git .github node_modules dist
 if ($LASTEXITCODE -ge 8) { Finish ('复制插件失败，robocopy 退出码 ' + $LASTEXITCODE) }
 Write-Ok ('已复制到 ' + $vendorDir)
 
