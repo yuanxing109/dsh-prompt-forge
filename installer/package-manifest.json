@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
   "version": "0.3.4",
-  "generatedAt": "2026-11-13T16:23:52.654Z",
+  "generatedAt": "2026-11-13T16:45:28.603Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -10,7 +10,7 @@
   },
   "bundlePatch": "./cordis.patch.yml",
   "fileCount": 52,
-  "totalBytes": 1438171,
+  "totalBytes": 1441795,
   "files": [
     {
       "path": ".gitignore",
@@ -24,13 +24,13 @@
     },
     {
       "path": "README.md",
-      "size": 31798,
-      "sha256": "ea4dbb68fb2624ce204e73fad5f30a9889caac15f253da5a6204a3abf466b544"
+      "size": 32145,
+      "sha256": "066674d6bd3210a7e552bcc8112b7e067b4671ec933d31da76a11ecd6c4659f5"
     },
     {
       "path": "README.zh-CN.md",
-      "size": 28698,
-      "sha256": "29781fe59e8a25cfab12ebbe19b8a2801917626d755a265d982ef2914e66e591"
+      "size": 28932,
+      "sha256": "32010b873aff99be983948ce1a6ef270d45da7adb13d6c5941f2ca94f6024aa4"
     },
     {
       "path": "cordis.patch.yml",
@@ -99,8 +99,8 @@
     },
     {
       "path": "lib/client.js",
-      "size": 95637,
-      "sha256": "33a94b3f0783c20747a2d479288aaf442a8aab928abb9bd5079ddebccaa2cf6e"
+      "size": 96735,
+      "sha256": "8ec3c2016585896bd9c630172790b4e4d12231c09b2eef672759824c36c6a733"
     },
     {
       "path": "lib/client.js.pre-v04.bak",
@@ -109,8 +109,8 @@
     },
     {
       "path": "lib/index.js",
-      "size": 58170,
-      "sha256": "0673c7ae31774997876f42a6a1433e16c1aca7894561c85d687b314179d2ca15"
+      "size": 58171,
+      "sha256": "efd365cf822b1e81787d189fb89568a9552ddd74a8fed74cad531ab235f29877"
     },
     {
       "path": "lib/index.js.map",
@@ -124,13 +124,13 @@
     },
     {
       "path": "src/client/EnhanceButton.tsx",
-      "size": 17242,
-      "sha256": "20d43465bfa4b0ac1f78c4d4c3d89c45f4401bd4ebec9cdc1bacb090448aa0f2"
+      "size": 18723,
+      "sha256": "7da528369b82bd39b770ce1f2a3245f77ff357dbb281df0bef94c3decb64114d"
     },
     {
       "path": "src/client/ResultPanel.tsx",
-      "size": 13775,
-      "sha256": "cb6c997ddc30d7a34f22da9a03d8cd718146a999a169fffc11f2ed516141371b"
+      "size": 13782,
+      "sha256": "fca6a7fc70d02e82c893239ef485f5fa6f6f1d9525003d9e014d1d60353daf62"
     },
     {
       "path": "src/client/UndoBar.tsx",
@@ -179,8 +179,8 @@
     },
     {
       "path": "src/client/styles.ts",
-      "size": 15843,
-      "sha256": "bd2a364eb0927b5eeb5bbb5de37a08b65a4bcdb37c767098dbf554a667bb4581"
+      "size": 16015,
+      "sha256": "417428e1e7adbaf3efe124acb390953b184c5e46c27c2ff8a7fe0e8e6d1915bb"
     },
     {
       "path": "src/client/ui-state.ts",
@@ -194,8 +194,8 @@
     },
     {
       "path": "src/config.ts",
-      "size": 18136,
-      "sha256": "cf64244621bef0cc9fe514cabd3c40b830318c4101cbfbf0bf5172769ecb1e92"
+      "size": 18420,
+      "sha256": "ce044a419d9667ae13b630d766d257b2822eac0a9677b8155b2b4cb072401f1e"
     },
     {
       "path": "src/context.ts",

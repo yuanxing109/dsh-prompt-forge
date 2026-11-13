@@ -119,7 +119,11 @@ export const DEFAULT_CONFIG: Config = {
   reasoningEffort: 'off',
   maxOutputTokens: 8192,
   maxInputChars: 12000,
-  timeoutMs: 60000,
+  // Slow custom providers are the norm, not the exception: one OpenAI-
+  // compatible endpoint measured 38s for a single rewrite, which the old 60s
+  // default turned into a spurious `timeout`. 3 minutes keeps headroom and
+  // still sits well under the 10-minute schema ceiling.
+  timeoutMs: 180000,
   systemPrompt: '',
   strategyMode: 'replace-default',
   shortcut: 'ctrl+alt+e',

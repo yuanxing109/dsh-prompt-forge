@@ -37,7 +37,7 @@ Good agent prompts state *who the model should be*, *what to deliver*, *in what 
 flowchart LR
     A[Composer draft] --> B{Local guards<br/>empty / length / chips / busy}
     B -- pass --> C["POST /prompt-forge/enhance<br/>(loopback-fenced host route)"]
-    B -- reject --> P[Preview panel:<br/>readable error, draft untouched]
+    B -- reject --> P[One-line notice:<br/>readable error, draft untouched]
     C --> D["ctx.llm.stream<br/>rewrite with system strategy"]
     D --> E[Normalize:<br/>strip fences, trim, refuse empty]
     E --> F[Preview panel:<br/>original / enhanced]
@@ -101,7 +101,7 @@ dsh plugin --profile web remove dsh-prompt-forge
 **Composer button / shortcut** — type (or leave) a draft, hit ✨ or `Ctrl+Alt+E`:
 
 1. Local guards run first: empty drafts, over-length drafts (never auto-truncated — that would change your meaning), images-only drafts, and drafts containing command or file-reference chips are refused with a clear message. Chips are rejected because filling back would destroy them.
-2. The preview panel opens with a cancellable spinner. Your draft stays untouched — the hint says so.
+2. The button spins in place while the call runs — click it to cancel. Your draft stays untouched until a result is applied. A failure never opens a panel: it becomes a one-line notice that fades by itself.
 3. The result phase shows both texts side by side. **Apply** fills the enhanced text back and raises the undo bar; **Copy** puts it on the clipboard; **Cancel** (or `Esc`, or clicking the overlay) discards everything.
 4. The undo bar sits above the composer: one click restores the original. If you keep typing after applying, the bar quietly retires itself so stale text can never overwrite newer edits. Undo entries live **only in the current page's memory** (up to 3 per session) — a page reload, a web restart, or a session switch clears them.
 
@@ -121,7 +121,7 @@ Everything lives in the `prompt-forge` settings namespace, edited from the web G
 | `reasoningEffort` | `off` | Reasoning budget sent with the call: `off` / `low` / `high` / `inherit` (omit the field and follow the model's own default). A rewrite is a short, well-specified task, so the model's default budget is pure waste — measured on one and the same draft: `high` spent **2897** output tokens where `off` spent **252**, an 11× difference for the same rewrite. Models that declare no reasoning capability are handled: the harness rejects an explicit effort with `UNSUPPORTED_REASONING_EFFORT`, and the call is retried once with the field omitted, so this setting never breaks such a route |
 | `maxOutputTokens` | `8192` | Output token budget of one enhancement call |
 | `maxInputChars` | `12000` | Input character cap (counted in Unicode code points — an emoji is one character); over-limit drafts are **rejected, never truncated** |
-| `timeoutMs` | `60000` | End-to-end deadline of one call |
+| `timeoutMs` | `180000` | End-to-end deadline of one call. 3 minutes by default: a custom OpenAI-compatible endpoint measured 38s for a single rewrite, and the old 60s default turned those calls into spurious timeouts |
 | `systemPrompt` | built-in strategy | Custom strategy text; how it combines with the built-in strategy is set by `strategyMode` |
 | `strategyMode` | `replace-default` | How a custom strategy combines with the built-in one: `replace-default` **swaps it out entirely** (backward compatible, but the built-in hard rules — preserve intent, never fabricate, body-only output, language mirroring — are not retained and must be carried into your own text); `extend-default` **appends your text after the built-in strategy**, keeping those rules in force |
 | `shortcut` | `ctrl+alt+e` | Global shortcut spec (at least one modifier + one alphanumeric/function key — bare keys are ignored so normal typing can never be swallowed); empty disables it |
@@ -165,11 +165,11 @@ Set `systemPrompt` in the settings to use your own strategy; `strategyMode` deci
 | Output reaches `maxOutputTokens` | Refused with a hint to raise the cap or shorten the draft |
 | Route's model declares no reasoning capability | The `UNSUPPORTED_REASONING_EFFORT` refusal is not shown: the effort is dropped and the call retried once. `reasoningEffort: inherit` never sends the field, so it never hits this path |
 | Model returns empty / fence-wrapped / tool-call output | Normalized (fences stripped) or refused; retryable |
-| Timeout | `504`-mapped message with the configured seconds; retryable |
+| Timeout | `504`-mapped message naming the configured seconds; surfaced as a notice, never auto-retried |
 | Browser tab closed mid-flight | The host route detects the disconnect and aborts the model call |
 | Session switch | Panel state, undo stack, and shortcut targeting are per-session; switching closes the panel and clears its undo entries |
 
-Every failure surfaces inside the plugin's own panel; the composer draft is never modified by a failed call, so manual input continues undisturbed.
+Every failure surfaces as a one-line notice that fades by itself — no modal, no buttons to click. The composer draft is never modified by a failed call, so manual input continues undisturbed.
 
 ## Error codes & localization
 

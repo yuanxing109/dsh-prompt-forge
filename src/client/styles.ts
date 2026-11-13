@@ -90,6 +90,13 @@ export const CSS = `
   overflow: hidden;
   animation: dsh-pf-rise 0.16s ease-out;
 }
+/* The one-line variant: same shell, no card body, no buttons. */
+.dsh-pf-notice {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: default;
+}
 @keyframes dsh-pf-rise {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }

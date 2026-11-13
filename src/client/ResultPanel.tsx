@@ -59,7 +59,7 @@ export const UPSTREAM_ERROR_KEYS: Record<string, PromptForgeKey> = {
  * client-side guard shows. The server's `message` (provider raw text, config
  * errors) renders beneath as the diagnostic detail line.
  */
-function localizedErrorMessage(
+export function localizedErrorMessage(
   t: ResultPanelProps['t'],
   code: EnhanceError['code'],
   params: EnhanceError['params'],

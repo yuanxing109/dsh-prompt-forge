@@ -28,7 +28,7 @@ import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { EnhanceError } from '../shared/protocol'
 import { checkInputText } from '../shared/validate'
 import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enhance-client'
-import { ResultPanel } from './ResultPanel'
+import { ResultPanel, localizedErrorMessage } from './ResultPanel'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -109,6 +109,10 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   // Set when the preview panel had to be opened for a result that arrived
   // after the draft changed; cleared on apply/cancel.
   const [confirmOpen, setConfirmOpen] = useState(false)
+  // Failures are reported as a self-dismissing one-line notice: no modal, no
+  // buttons, nothing to decide. The draft was never touched, so there is only
+  // something to know.
+  const [notice, setNotice] = useState<string | null>(null)
   const rootRef = useRef<HTMLButtonElement | null>(null)
   const busy = panel !== undefined && panel.sessionId === uiKey && panel.phase === 'loading'
   // The composer is holding exactly the text this button wrote into it, and
@@ -269,6 +273,29 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     ui.closePanel()
   }, [draft, occurrences, panel, uiKey, writeDraft])
 
+  // Every failure — the local guards and the host errors alike — collapses
+  // into the notice: the shared panel slot exists for a decision (apply or
+  // discard), and an error is not one. Closing the slot immediately also frees
+  // the other composers' buttons, which are disabled while it is occupied.
+  useEffect(() => {
+    if (panel === undefined || panel.sessionId !== uiKey) return
+    if (panel.phase !== 'error' || panel.error === undefined) return
+    setNotice(
+      panel.error.localized !== undefined
+        ? panel.error.localized
+        : localizedErrorMessage(t, panel.error.code, panel.error.params),
+    )
+    setConfirmOpen(false)
+    ui.closePanel()
+  }, [panel, uiKey, t])
+
+  // The notice fades on its own; the user never has to dismiss it.
+  useEffect(() => {
+    if (notice === null) return undefined
+    const timer = setTimeout(() => setNotice(null), 6000)
+    return () => clearTimeout(timer)
+  }, [notice])
+
   /** Apply the enhanced result from the panel: remember the CURRENT draft
    * (pre-apply, so undo restores exactly this state even if the user typed
    * during the request), then fill the enhanced text back. */
@@ -301,9 +328,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   if (!settings.enabled) return null
 
   const owned = panel !== undefined && panel.sessionId === uiKey ? panel : undefined
-  // Only these two states still warrant the panel; a plain success is applied
-  // in place and never opens one.
-  const showPanel = owned !== undefined && (owned.phase === 'error' || (owned.phase === 'result' && confirmOpen))
+  // Only the "the draft changed under the call" confirmation still warrants
+  // the panel; a plain success is applied in place and errors become notices.
+  const showPanel = owned !== undefined && owned.phase === 'result' && confirmOpen
   const icon = canRevert ? '↩' : '✨'
   // The busy state is a real drawn ring, not the `◌` glyph: a Unicode circle
   // is rendered by whatever font the host happens to use, and several of them
@@ -322,7 +349,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         ref={rootRef}
         type="button"
         className={`dsh-pf-btn${busy ? ' is-busy' : ''}${canRevert ? ' is-revert' : ''}`}
-        title={title}
         aria-label={title}
         // `aria-disabled` instead of `disabled`: a disabled button is skipped by
         // the keyboard and by screen readers, so the reason this composer is
@@ -334,6 +360,15 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       >
         <span className="dsh-pf-btn-icon" aria-hidden>{glyph}</span>
       </button>
+      {notice !== null &&
+        createPortal(
+          <div className="dsh-pf-toast-layer">
+            <div className="dsh-pf-toast dsh-pf-notice" role="status" aria-live="polite">
+              {notice}
+            </div>
+          </div>,
+          document.body,
+        )}
       {showPanel && owned !== undefined && (
         createPortal(
           <ResultPanel
