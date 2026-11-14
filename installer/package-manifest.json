@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
-  "version": "0.1.1",
-  "generatedAt": "2026-11-14T06:56:54.992Z",
+  "version": "0.1.2",
+  "generatedAt": "2026-11-14T07:12:47.464Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -25,7 +25,7 @@
     {
       "path": "README.md",
       "size": 23776,
-      "sha256": "1022746fd7b167a6ddd06e6fd5b28b931c06aeefd52f70ee3ddcf571e198e1e3"
+      "sha256": "8755e6099ae2f238cb14fc48bd4e8255ae32cd9a5755e8a0651bf61afb756d9f"
     },
     {
       "path": "cordis.patch.yml",
@@ -60,7 +60,7 @@
     {
       "path": "package.json",
       "size": 3093,
-      "sha256": "38fc762a20b66d8ae86441c6f0ac50cfc7ec78678b754eaa1bea1c007956e33c"
+      "sha256": "dbd3b062ea1702ceaa172e70e88f66157c4a40ed9a36e78f1996c670e0ef83ef"
     },
     {
       "path": "src/client/EnhanceButton.tsx",

@@ -1,4 +1,4 @@
-# dsh-prompt-forge 离线安装包（0.1.1 · 你的修改版）
+# dsh-prompt-forge 离线安装包（0.1.2 · 你的修改版）
 
 把 `dsh-prompt-forge` 插件连同它的修改一起装到任意一台 Windows 的 DeepSeek Harness 里：双击 `installer\install.bat` 安装，双击 `installer\uninstall.bat` 回滚，`installer\verify.bat` 逐项核对结果。全程不依赖 npm registry 上的同名包，装的就是包内这份代码。
 
@@ -25,7 +25,7 @@
 
 ```
 dsh-prompt-forge\                  # 仓库根 = 插件包根（dsh 直装用）
-├─ package.json                   # v0.1.1, type=module, dsh.bundle.patch=./cordis.patch.yml
+├─ package.json                   # v0.1.2, type=module, dsh.bundle.patch=./cordis.patch.yml
 ├─ cordis.patch.yml               # bundle 补丁（插入插件行）
 ├─ lib\
 │  ├─ index.js                    # 宿主半区（已编译）
@@ -124,7 +124,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer\verify.ps1 -Mode u
 | install | 依赖写法 | `package.json` 中为 `file:./vendor/dsh-prompt-forge` |
 | install | bundle 注册 | `dsh.profile.bundles` 中恰好 1 条 `dsh-prompt-forge` |
 | install | 必要文件 | vendor 下 `package.json`、`cordis.patch.yml`、`lib\index.js`、`lib\client.js` 齐全 |
-| install | 版本 | vendor 版本 = 包版本（0.1.1） |
+| install | 版本 | vendor 版本 = 包版本（0.1.2） |
 | install | 文件哈希 | 39 个文件 SHA-256 与 `package-manifest.json` 全一致 |
 | install | node_modules 解析 | `node_modules\dsh-prompt-forge\package.json` 与 vendor 同哈希（同一份文件） |
 | install | lockfile | `pnpm-lock.yaml` 记录 `vendor/dsh-prompt-forge`（junction 模式可能为 WARN） |
