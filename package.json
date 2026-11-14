@@ -99,6 +99,7 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc -p . --pretty false",
     "test": "vitest run",
+    "test:unit": "node --test test/*.test.mjs",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test"
   },

@@ -29,6 +29,7 @@ import type { EnhanceError } from '../shared/protocol'
 import { checkInputText } from '../shared/validate'
 import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enhance-client'
 import { localizedErrorMessage } from './errors'
+import { planAnchoredDraft, planRestoredDraft } from './reference-anchor'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -223,31 +224,49 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   /**
    * Write one draft back into the composer, carrying its chip records with it.
    *
-   * The host's `setDraft` accepts either a plain string or a semantic document
-   * `{ text, references }`; only the document form survives reference and
-   * command chips, so the string form is used solely when there are none.
+   * The host accepts a semantic draft `{ text, references }` only when every
+   * reference is a true sub-slice of the text: `length === clipboardText.length`,
+   * `text.slice(offset, end) === clipboardText`, offsets ascending, no overlap.
+   * The previous implementation parked every chip at `text.length`, which no
+   * schema accepts — the persisted draft then failed to parse and the chips came
+   * back as ordinary `@path` text, while a path the model had kept in the body
+   * showed up twice (body text plus the tail chip).
    *
-   * Chip offsets are measured against the draft text, and the rewritten text
-   * has a different length — so a rewritten draft re-anchors every chip at the
-   * END of the new text. That is the only offset guaranteed to be in range, and
-   * it keeps each reference valid (the chips stay as a trailing group). A
-   * restore passes `keepOffsets` because the original text and the original
-   * chip offsets still belong together.
+   * `planAnchoredDraft` re-anchors each chip on the characters the rewriter
+   * preserved, strips surplus copies of a path, and appends a path the model
+   * dropped exactly once. `planRestoredDraft` (undo) keeps the recorded offsets
+   * and only validates them. When neither yields a valid draft the text is
+   * written plain and the user is told — a half-valid chip set never ships.
    * @param text - the draft text to write.
    * @param references - the chips to keep, if any.
-   * @param keepOffsets - restore the chips at their recorded offsets.
+   * @param keepOffsets - restore the chips at their recorded offsets (undo).
+   * @param sourceText - the text the chips' characters came from.
    */
-  const writeDraft = useCallback((text: string, references?: readonly unknown[], keepOffsets = false): void => {
+  const writeDraft = useCallback((
+    text: string,
+    references?: readonly unknown[],
+    keepOffsets = false,
+    sourceText?: string,
+  ): void => {
     const setDraft = inputActions.setDraft as unknown as (value: unknown) => void
     if (references === undefined || references.length === 0) {
       setDraft(text)
       return
     }
-    const placed = keepOffsets
-      ? references
-      : references.map((entry) => ({ ...(entry as Record<string, unknown>), offset: text.length }))
-    setDraft({ text, references: placed })
-  }, [inputActions])
+    const planned = keepOffsets
+      ? planRestoredDraft(text, references, sourceText ?? text)
+      : planAnchoredDraft(text, references, sourceText)
+    if (planned === undefined) {
+      setDraft(text)
+      setNotice(t('notice.referencesDropped'))
+      return
+    }
+    if (planned.references.length === 0) {
+      setDraft(planned.text)
+      return
+    }
+    setDraft(planned)
+  }, [inputActions, t])
 
   // The in-place apply. Runs when this session's request settles with a
   // result: remember the pre-apply draft (so undo restores exactly what the
@@ -273,7 +292,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       return
     }
     ui.pushUndo(uiKey, { original: draft, applied: enhanced, originalReferences: occurrences })
-    writeDraft(enhanced, occurrences)
+    writeDraft(enhanced, occurrences, false, panel.original)
     ui.closePanel()
   }, [draft, occurrences, panel, uiKey, t, writeDraft])
 
