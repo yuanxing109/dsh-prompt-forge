@@ -132,14 +132,61 @@ export function validateDraft(text: string, references: readonly AnchorReference
   return { text, references: ordered }
 }
 
+/** Characters that may extend a path-like token, used to reject partial hits. */
+const PATH_TAIL = /[A-Za-z0-9_./-]/
+
+/** One span inside the working text, claimed by a chip. */
+interface Span {
+  start: number
+  end: number
+}
+
+/** Every spelling that may stand for one chip in rewritten prose, best first. */
+function tokenVariants(record: AnchorReference): string[] {
+  const variants: string[] = []
+  const push = (value: string): void => {
+    if (value !== '' && !variants.includes(value)) variants.push(value)
+  }
+  push(record.clipboardText)
+  if (record.clipboardText.startsWith('@')) push(record.clipboardText.slice(1))
+  push(record.label)
+  if (record.label.startsWith('@')) push(record.label.slice(1))
+  return variants
+}
+
+function overlaps(start: number, end: number, claimed: readonly Span[]): boolean {
+  for (const span of claimed) if (start < span.end && span.start < end) return true
+  return false
+}
+
+/** First unclaimed hit for `token` that is not a fragment of a longer path. */
+function findFreeSpan(text: string, token: string, claimed: readonly Span[]): number {
+  if (token === '') return -1
+  let from = 0
+  for (;;) {
+    const at = text.indexOf(token, from)
+    if (at === -1) return -1
+    const end = at + token.length
+    const before = at === 0 ? '' : text[at - 1]
+    const after = end >= text.length ? '' : text[end]
+    const gluedBefore = !token.startsWith('@') && PATH_TAIL.test(before)
+    const gluedAfter = !token.endsWith('/') && PATH_TAIL.test(after)
+    if (!gluedBefore && !gluedAfter && !overlaps(at, end, claimed)) return at
+    from = at + 1
+  }
+}
+
 /**
  * Re-anchor chips inside a rewritten text.
  *
- * Each chip is matched by its `clipboardText` characters, so a path the model
- * kept stays exactly where it is and keeps its chip look; a path the model
- * dropped is appended at the tail, once. Surplus copies of a path beyond the
- * number of chips asking for it are removed, which is what stops the
- * "one reference becomes two" duplication (body `@path` + trailing chip).
+ * Each chip is located by its `clipboardText` characters first, then by the
+ * spellings a rewriter commonly normalises it into: the bare path without the
+ * leading `@`, or the chip label. A hit on a stunted spelling is rewritten back
+ * to `clipboardText` in place, so the chip keeps its position and look even when
+ * the model dropped the `@`. A path the model removed entirely is appended at
+ * the tail, once. Surplus copies of a path beyond the number of chips asking for
+ * it are removed, which is what stops the "one reference becomes two"
+ * duplication (body `@path` + trailing chip).
  * @param nextText - the rewritten draft text.
  * @param references - the live chip records captured before the call.
  * @param sourceText - the pre-call draft, used when a record lacks clipboardText.
@@ -162,23 +209,45 @@ export function planAnchoredDraft(
       text = text.slice(0, found[index]) + text.slice(found[index] + token.length)
     }
   }
-  const slots = new Map<string, number[]>()
-  for (const token of wanted.keys()) slots.set(token, allIndexes(text, token))
-  const taken = new Map<string, number>()
-  const placed: AnchorReference[] = []
-  let out = text
+  const claimed: Span[] = []
+  const claims: { span: Span; record: AnchorReference }[] = []
+  const pending: AnchorReference[] = []
   for (const record of records) {
-    const candidates = slots.get(record.clipboardText) ?? []
-    const index = taken.get(record.clipboardText) ?? 0
-    if (index < candidates.length) {
-      taken.set(record.clipboardText, index + 1)
-      placed.push({ ...record, offset: candidates[index], length: record.clipboardText.length })
+    let hit = -1
+    let hitToken = ''
+    for (const token of tokenVariants(record)) {
+      hit = findFreeSpan(text, token, claimed)
+      if (hit !== -1) {
+        hitToken = token
+        break
+      }
+    }
+    if (hit === -1) {
+      pending.push(record)
       continue
     }
+    const span = { start: hit, end: hit + hitToken.length }
+    claimed.push(span)
+    claims.push({ span, record })
+  }
+  claims.sort((left, right) => left.span.start - right.span.start)
+  const placed: AnchorReference[] = []
+  let out = ''
+  let cursor = 0
+  const emit = (record: AnchorReference): void => {
+    placed.push({ ...record, offset: out.length, length: record.clipboardText.length })
+    out += record.clipboardText
+  }
+  for (const claim of claims) {
+    out += text.slice(cursor, claim.span.start)
+    emit(claim.record)
+    cursor = claim.span.end
+  }
+  out += text.slice(cursor)
+  for (const record of pending) {
     const separator = out === '' || /\s$/.test(out) ? '' : ' '
-    const offset = out.length + separator.length
-    out += separator + record.clipboardText
-    placed.push({ ...record, offset, length: record.clipboardText.length })
+    out += separator
+    emit(record)
   }
   return validateDraft(out, placed)
 }

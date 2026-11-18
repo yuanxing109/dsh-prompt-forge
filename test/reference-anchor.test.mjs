@@ -105,6 +105,30 @@ test('a path the model dropped is appended exactly once at the tail', () => {
   assert.equal(planned.text.slice(tail.offset), '@installer/', 'the dropped path sits at the very end')
 })
 
+test('a path the model stripped of its @ is restored in place, not at the tail', () => {
+  const token = '@src/auth/login.ts'
+  const original = '帮我重构 ' + token + ' 里的登录逻辑，并补充测试。'
+  const references = chipRecords(original, [token])
+  const enhanced = '请重构 src/auth/login.ts 中的登录逻辑，并补充测试。'
+  const planned = planAnchoredDraft(enhanced, references, original)
+  assertHostValid(planned)
+  assert.equal(planned.references.length, 1)
+  assert.equal(planned.text, '请重构 @src/auth/login.ts 中的登录逻辑，并补充测试。')
+  assert.equal(planned.references[0].offset, '请重构 '.length)
+})
+
+test('a fragment of a longer path is not claimed by the chip', () => {
+  const token = '@src/a.ts'
+  const original = '读 ' + token + ' 的实现。'
+  const references = chipRecords(original, [token])
+  const planned = planAnchoredDraft('请读 src/a.tsx 的实现。', references, original)
+  assertHostValid(planned)
+  assert.equal(planned.references.length, 1, 'the chip survives')
+  assert.equal(allIndexes(planned.text, '@src/a.tsx').length, 0, 'the longer path stays untouched')
+  assert.equal(planned.text.includes('src/a.tsx'), true)
+  assert.equal(planned.text.endsWith('@src/a.ts'), true, 'the unmatched chip is parked at the tail')
+})
+
 test('plain prose without any chip characters stays a plain draft', () => {
   const planned = planAnchoredDraft('纯文本，没有引用。', [], ORIGINAL)
   assert.deepEqual(planned, { text: '纯文本，没有引用。', references: [] })

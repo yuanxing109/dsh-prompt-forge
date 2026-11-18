@@ -1,7 +1,7 @@
 {
   "name": "dsh-prompt-forge",
-  "version": "0.1.2",
-  "generatedAt": "2026-11-14T07:12:47.464Z",
+  "version": "0.1.3",
+  "generatedAt": "2026-11-18T01:20:33.534Z",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
@@ -10,7 +10,7 @@
   },
   "bundlePatch": "./cordis.patch.yml",
   "fileCount": 42,
-  "totalBytes": 706536,
+  "totalBytes": 713990,
   "files": [
     {
       "path": ".gitignore",
@@ -24,8 +24,8 @@
     },
     {
       "path": "README.md",
-      "size": 23776,
-      "sha256": "8755e6099ae2f238cb14fc48bd4e8255ae32cd9a5755e8a0651bf61afb756d9f"
+      "size": 24520,
+      "sha256": "894fd132583fe03f0a055f0652b626e1777b49a3d2fb9a662c014537bf08cbf6"
     },
     {
       "path": "cordis.patch.yml",
@@ -34,8 +34,8 @@
     },
     {
       "path": "lib/client.js",
-      "size": 101110,
-      "sha256": "ea7ae0a5bede0d485a13e2f435b2a718d8aa980da19d430e07e663ef57104254"
+      "size": 102604,
+      "sha256": "cca6f8406baccfea86f438d5660eafeedb2da49e525c13ca2d01ed9090a9f2ad"
     },
     {
       "path": "lib/client.js.pre-v04.bak",
@@ -54,13 +54,13 @@
     },
     {
       "path": "lib/reference-anchor.js",
-      "size": 5512,
-      "sha256": "ca9e1471adc3c37b44925c55933677154836eeb527b13699c532cdc119c32912"
+      "size": 7222,
+      "sha256": "8abb85aee91806f13faa698d77e676cabc955f2e949f7a9de983c8a77b2ead0f"
     },
     {
       "path": "package.json",
       "size": 3093,
-      "sha256": "dbd3b062ea1702ceaa172e70e88f66157c4a40ed9a36e78f1996c670e0ef83ef"
+      "sha256": "22b792b21f1ea4594d29c4c50cfdfc00c2eedbb11af866b34899023ebe0b001a"
     },
     {
       "path": "src/client/EnhanceButton.tsx",
@@ -94,8 +94,8 @@
     },
     {
       "path": "src/client/reference-anchor.ts",
-      "size": 8311,
-      "sha256": "10e73b68daae806ee97bbc590cd4433954ffdead6f62f1cd233bf5d96b740e93"
+      "size": 10502,
+      "sha256": "b3aee65166059873e41d344613d19527503bc330c50c479ee38ce404053d9be2"
     },
     {
       "path": "src/client/session-key.ts",
@@ -219,8 +219,8 @@
     },
     {
       "path": "test/reference-anchor.test.mjs",
-      "size": 7015,
-      "sha256": "e6a3404684e666a61e2c9597093cdc5e09bc70691fe0ed3456e209473a02b5cf"
+      "size": 8330,
+      "sha256": "dd32e44f4195c922be9ebf147e2068a3ed54b5720bf980ad0f1059dda80b381c"
     }
   ]
 }
